@@ -5,6 +5,8 @@ import cors from "cors"
 import dotenv from "dotenv"
 import { setupCollabSocket } from "./sockets/collab"
 import { connectDB } from "./config/db"
+import documentsRouter from './routes/documents';
+import authRouter from './routes/auth';
 
 //Initialize Environment Variables
 dotenv.config();
@@ -23,6 +25,10 @@ app.use(express.json());
 
 // connect the Database
 connectDB();
+
+// After middleware setup
+app.use('/api/documents', documentsRouter);
+app.use('/api/auth', authRouter);
 
 //configure Socket.io
 const io = new Server( server, {
