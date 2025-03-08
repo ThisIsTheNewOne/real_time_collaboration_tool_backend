@@ -8,6 +8,9 @@ import { connectDB } from "./config/db"
 
 //Initialize Environment Variables
 dotenv.config();
+console.log('PG_USER:', process.env.PG_USER); // Should log "postgres"
+console.log('PG_PASSWORD:', process.env.PG_PASSWORD); // Should log "password"
+console.log('PG_HOST:', process.env.PG_HOST); 
 
 const app = express();
 // Create express and HTTP Server

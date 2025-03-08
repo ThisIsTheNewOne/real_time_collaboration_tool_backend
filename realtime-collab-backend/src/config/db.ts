@@ -1,3 +1,7 @@
+import dotenv from "dotenv";
+dotenv.config(); 
+
+
 import { Pool } from 'pg';
 import { createClient } from 'redis';
 
@@ -6,9 +10,10 @@ import { createClient } from 'redis';
 export const pgPool = new Pool( {
     user: process.env.PG_USER, // Databases username
     host: process.env.PG_HOST, // Database host
-    database: process.env.PG_DATABASE , // Database name
-    password: process.env.PG_PASSWORD  ||  'passwordTest' , // Database password
+    database: process.env.PG_DATABASE, // Database name
+    password: process.env.PG_PASSWORD, // Database password
     port: Number(process.env.PG_PORT) || 5432, // Default PostgreSQL port
+    
 })
 
 // Redis is used for presence tracking && caching
