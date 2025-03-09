@@ -1,7 +1,8 @@
 import { Server, Socket } from "socket.io";
-import { redisClient } from "../config/db";
+import { pgPool, redisClient } from "../config/db";
 import ShareDB from "sharedb";
 import ShareDBPostgres from "sharedb-postgres";
+import jwt from "jsonwebtoken";
 
 // Configure ShareDB with PostgreSQL
 const db = new ShareDBPostgres({
@@ -16,11 +17,8 @@ const db = new ShareDBPostgres({
 
 const backend = new ShareDB({ db });
 const connection = backend.connect();
-
-// Track active documents
 const activeDocuments = new Map<string, ShareDB.Doc>();
 
-// Define types of clarity
 type DocId = string;
 type UserId = string;
 type CursorPosition = { x: number; y: number };
@@ -31,6 +29,9 @@ export const setupCollabSocket = (io: Server) => {
 
     let currentDocId: DocId | null = null;
     let currentDoc: ShareDB.Doc | null = null;
+    let userId: UserId | null = null;
+    let saveVersionTimeout: NodeJS.Timeout | null = null;
+    let pendingChanges = 0;
 
     const getOrCreateDoc = (docId: DocId): ShareDB.Doc => {
       if (!activeDocuments.has(docId)) {
@@ -40,74 +41,127 @@ export const setupCollabSocket = (io: Server) => {
       return activeDocuments.get(docId)!;
     };
 
+    const saveDocumentVersion = async () => {
+      if (!currentDocId || !currentDoc || !userId) return;
+
+      try {
+        await pgPool.query(
+          `INSERT INTO document_versions (doc_id, content, created_by)
+           VALUES ($1, $2, $3)`,
+          [currentDocId, JSON.stringify(currentDoc.data), userId]
+        );
+        console.log(`Version saved for document ${currentDocId}`);
+      } catch (err) {
+        console.error("Version save failed:", err);
+      }
+    };
+
     // Handle joining a document room
-    socket.on("join-documnet", async (docId: DocId) => {
-      // Join the room for this document
-      currentDocId = docId;
-      socket.join(docId);
-      console.log(`User ${socket.id} joined document ${docId}`);
+    socket.on("join-document", async (docId: DocId, authToken: string) => {
+      try {
+        // Verify JWT and get user ID
+        const decoded = jwt.verify(authToken, process.env.JWT_SECRET!) as {
+          userId: string;
+        };
+        const userResult = await pgPool.query(
+          "SELECT id FROM users WHERE id = $1",
+          [decoded.userId]
+        );
+        userId = userResult.rows[0]?.id; // Fix: Assign to outer userId variable
 
-      // Initialize ShareDB document
-      currentDoc = getOrCreateDoc(docId);
+        if (!userId) {
+          socket.emit("error", "Unauthorized");
+          return;
+        }
 
-      // Fetch document state
-      currentDoc.fetch(async (err: any) => {
-        if (err) throw err;
+        currentDocId = docId;
+        socket.join(docId);
+        currentDoc = getOrCreateDoc(docId);
 
-        // Send initial document state to client
+        await new Promise<void>((resolve, reject) => {
+          currentDoc!.fetch((err) => (err ? reject(err) : resolve()));
+        });
+
+        // Add ShareDB operation listener
+        currentDoc!.on("op", (op: any, source: string) => {
+          if (source === socket.id) {
+            pendingChanges++;
+
+            if (saveVersionTimeout) clearTimeout(saveVersionTimeout);
+            saveVersionTimeout = setTimeout(() => {
+              saveDocumentVersion();
+              pendingChanges = 0;
+            }, 30000);
+
+            if (pendingChanges >= 10) {
+              if (saveVersionTimeout) clearTimeout(saveVersionTimeout);
+              saveDocumentVersion();
+              pendingChanges = 0;
+            }
+          }
+        });
+
+        // Send initial data to client
         socket.emit("document-content", currentDoc!.data);
 
-        // Track active user
-        await redisClient.sAdd(`doc:${docId}:users`, socket.id);
-        socket.to(docId).emit("user-connected", socket.id);
-      });
-
-      // Handle text changes
-      socket.on("text-change", (delta: any) => {
-        if (!currentDoc) return;
-
-        // Submit operation to ShareDB
-        currentDoc.submitOp(delta, { source: socket.id }, (err: any) => {
-          if (err) console.error("Operation error:", err);
-        });
-      });
-
-      // Listen for ShareDB changes
-      currentDoc.on("op", (op: any, source: string) => {
-        if (source !== socket.id) {
-          socket.emit("text-update", op);
-        }
-      });
+        // Sync presence
+        await redisClient.hSet(
+          `doc:${docId}:users`,
+          socket.id,
+          JSON.stringify({
+            userId: socket.id,
+            name: "Anonymous",
+            cursor: { x: 0, y: 0 },
+          })
+        );
+        const activeUsers = await redisClient.hGetAll(`doc:${docId}:users`);
+        io.to(docId).emit("active-users", activeUsers);
+      } catch (err) {
+        console.error("Join document error:", err);
+        socket.emit("error", "Failed to load document");
+      }
     });
 
-    // Send current document content to the new user
-    // socket.emit("document-content", initialContent)
+    // Text changes
+    socket.on("text-change", (delta: any) => {
+      if (!currentDoc) return;
+      currentDoc.submitOp(delta, { source: socket.id });
+    });
 
-    // Handle cursor movement
+    // Cursor movement
     socket.on("cursor-move", (cursorPos: CursorPosition) => {
-      if (!currentDocId) return;
-      // Broadcast cursor position to others in the same doc ( excluding sender )
+      if (!currentDocId || !cursorPos.x || !cursorPos.y) return;
       socket.to(currentDocId).emit("cursor-position", {
         userId: socket.id,
         cursorPos,
       });
+      redisClient.hSet(
+        `doc:${currentDocId}:users`,
+        socket.id,
+        JSON.stringify({ cursor: cursorPos })
+      );
     });
 
-    // Handle disconnection
+    // Disconnect
     socket.on("disconnect", async () => {
-      console.log(`User ${socket.id} disconnected`);
+      if (!currentDocId) return;
 
-      if (currentDocId) {
-        // Clean up Redis tracking
-        await redisClient.sRem(`doc:${currentDocId}:users`, socket.id);
-        socket.to(currentDocId).emit("user-disconnected", socket.id);
+      // Save final version if needed
+      if (pendingChanges > 0) {
+        await saveDocumentVersion();
+      }
 
-        // Clean up ShareDB document if no users left
-        const users = await redisClient.sMembers(`doc:${currentDocId}:users`);
-        if (users.length === 0 && currentDoc) {
-          currentDoc.destroy();
-          activeDocuments.delete(currentDocId);
-        }
+      // Cleanup presence
+      await redisClient.hDel(`doc:${currentDocId}:users`, socket.id);
+      const activeUsers = await redisClient.hGetAll(
+        `doc:${currentDocId}:users`
+      );
+      io.to(currentDocId).emit("active-users", activeUsers);
+
+      // Cleanup ShareDB doc
+      if (Object.keys(activeUsers).length === 0 && currentDoc) {
+        currentDoc.unsubscribe();
+        activeDocuments.delete(currentDocId);
       }
     });
   });

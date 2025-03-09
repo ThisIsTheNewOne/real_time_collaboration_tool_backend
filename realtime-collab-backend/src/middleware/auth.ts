@@ -14,6 +14,8 @@ declare global {
 }
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    // // Example usage in middleware/auth.ts
+    // const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
