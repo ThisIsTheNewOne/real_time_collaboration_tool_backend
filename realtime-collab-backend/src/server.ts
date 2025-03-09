@@ -35,7 +35,13 @@ const io = new Server( server, {
     // allows WebSocket connections only from the frontend
     cors: {
         origin: process.env.CLIENT_URL || 'http://localhost:3000',
-        methods: ['GET', 'POST']
+        allowedHeaders: ['Authorization'], // Allow JWT header
+        methods: ['GET', 'POST'],
+        credentials: true
+    },
+    transports: ['websocket'], // Force WebSocket-only
+    connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000 // 2 minutes
     }
 });
 
