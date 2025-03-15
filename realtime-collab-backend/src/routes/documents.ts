@@ -39,6 +39,34 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
+// Get All Documents
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    const result = await pgPool.query("SELECT id, data FROM documents");
+
+    const documents = result.rows.map((row) => {
+      let parsedData;
+
+      // Check if 'data' is already an object
+      if (typeof row.data === "string") {
+        parsedData = JSON.parse(row.data);
+      } else {
+        parsedData = row.data; // Already parsed
+      }
+
+      return {
+        id: row.id,
+        ...parsedData,
+      };
+    });
+
+    res.json(documents);
+  } catch (err) {
+    console.error("Error fetching documents:", err);
+    res.status(500).json({ error: "Failed to fetch documents" });
+  }
+});
+
 // Get a document by ID
 router.get("/:id", authMiddleware, async (req, res) => {
   const docId = req.params.id;
