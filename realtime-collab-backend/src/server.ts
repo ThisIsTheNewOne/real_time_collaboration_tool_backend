@@ -3,7 +3,8 @@ import http from "http"
 import { Server } from "socket.io"
 import cors from "cors"
 import dotenv from "dotenv"
-import { setupCollabSocket } from "./sockets/collab22"
+// import { setupCollabSocket } from "./sockets/collab22"
+import { setupCollabSocket } from "./sockets/collab"
 import { connectDB, pgPool } from "./config/db"
 import documentsRouter from './routes/documents';
 import authRouter from './routes/auth';
@@ -48,7 +49,8 @@ const io = new Server( server, {
 });
 
 // defines real-time event handlers  
-setupCollabSocket(io);
+// setupCollabSocket(io);
+setupCollabSocket(io)
 
 
 // define HTTP routes

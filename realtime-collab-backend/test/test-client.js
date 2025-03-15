@@ -2,7 +2,7 @@
 const { io } = require("socket.io-client");
 
 // Store token in a variable for clarity
-const authToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkNzcyNDhlOS1lMDQ0LTQ2MjQtODBiNC0yYzYyODQwYzAyMWUiLCJpYXQiOjE3NDIwNDk5MjEsImV4cCI6MTc0MjA1MzUyMX0.iNTYoYvX2A0K-wiZCiC2vriz8OLjzVNw1MBev71rdy8";
+const authToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkNzcyNDhlOS1lMDQ0LTQ2MjQtODBiNC0yYzYyODQwYzAyMWUiLCJpYXQiOjE3NDIwNTE5NzAsImV4cCI6MTc0MjA1NTU3MH0.riU6SuxgewpdETdc5DRMIpKum_Bqv38xRbt1hUL3Ks4";
 
 const socket = io("http://localhost:5000", {
   transports: ["websocket"] // Force WebSocket-only
@@ -15,7 +15,7 @@ socket.on("connect", () => {
   // Join document with auth token as second parameter
   socket.emit(
     "join-document", 
-    "2fc4ec3c-3134-4b4a-9e79-6a5f0ec836ec", 
+    "2a235c5c-1dbd-49f9-b75e-500c5118dd95", 
     authToken
   );
 });

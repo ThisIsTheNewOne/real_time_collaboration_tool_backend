@@ -10,7 +10,6 @@ declare module 'sharedb-postgres' {
     class ShareDBPostgres implements ShareDB.DB {
       constructor(options?: ShareDBPostgresOptions);
       close(callback?: (err: Error | null) => void): void;
-      // Add other methods as needed
     }
   
     export = ShareDBPostgres;

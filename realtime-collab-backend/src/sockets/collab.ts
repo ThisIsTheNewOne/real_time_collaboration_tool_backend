@@ -96,10 +96,21 @@ export const setupCollabSocket = (io: Server) => {
     // Handle joining a document room
     socket.on("join-document", async (docId: DocId, authToken: string) => {
       try {
+        console.log(`Attempting to join document ${docId} with token`);
+
         // Verify JWT and get user ID
-        const decoded = jwt.verify(authToken, process.env.JWT_SECRET!) as {
-          userId: string;
-        };
+        // Verify JWT and get user ID
+        let decoded;
+        try {
+          decoded = jwt.verify(authToken, process.env.JWT_SECRET!) as {
+            userId: string;
+          };
+          console.log(`JWT verified successfully for user: ${decoded.userId}`);
+        } catch (jwtErr) {
+          console.error("JWT verification failed:", jwtErr);
+          socket.emit("error", "Unauthorized: Invalid token");
+          return;
+        }
         const userResult = await pgPool.query(
           "SELECT id FROM users WHERE id = $1",
           [decoded.userId]
