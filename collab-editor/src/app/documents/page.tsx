@@ -72,6 +72,33 @@ export default function DocumentsPage() {
     }
   };
 
+  const deleteDocument = async (docId: string) => {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/documents/${docId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete document");
+      }
+
+      setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
+    } catch (err) {
+      console.error("Error deleting document:", err);
+      setError((err as Error).message);
+    }
+  };
+
   if (loading) return <div className="p-8">Loading documents...</div>;
 
   return (
@@ -105,20 +132,24 @@ export default function DocumentsPage() {
         {documents.length === 0 ? (
           <p>No documents yet. Create your first document above!</p>
         ) : (
-          documents.map((doc) => {
-            console.log("This is very important", doc)
-            return (
-              <Link
-                href={`/documents/${doc.id}`}
-                key={doc.id}
-                className="block p-4 border rounded hover:bg-gray-50"
-              >
+          documents.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex justify-between items-center p-4 border rounded hover:bg-gray-50"
+            >
+              <Link href={`/documents/${doc.id}`} className="flex-1">
                 <h2 className="text-xl font-semibold">
-                  {doc.title || 'Untitled Document'}
+                  {doc.title || "Untitled Document"}
                 </h2>
               </Link>
-            );
-          })
+              <button
+                onClick={() => deleteDocument(doc.id)}
+                className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          ))
         )}
       </div>
     </div>

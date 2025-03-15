@@ -67,6 +67,28 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+router.delete("/:id", authMiddleware, async (req, res): Promise<void> => {
+  const docId = req.params.id;
+
+  try {
+    // First, check if the document exists
+    const checkResult = await pgPool.query("SELECT id FROM documents WHERE id = $1", [docId]);
+
+    if (checkResult.rows.length === 0) {
+      res.status(404).json({ error: "Document not found" });
+      return;
+    }
+
+    // Delete the document
+    await pgPool.query("DELETE FROM documents WHERE id = $1", [docId]);
+
+    res.status(200).json({ message: "Document deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting document:", err);
+    res.status(500).json({ error: "Failed to delete document" });
+  }
+});
+
 // Get a document by ID
 router.get("/:id", authMiddleware, async (req, res) => {
   const docId = req.params.id;
