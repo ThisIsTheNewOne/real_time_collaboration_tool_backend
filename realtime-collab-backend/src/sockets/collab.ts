@@ -19,6 +19,7 @@ export const setupCollabSocket = (io: Server) => {
     let userId: UserId | null = null;
     let saveVersionTimeout: NodeJS.Timeout | null = null;
     let pendingChanges = 0;
+    let lastSavedContent = "";
 
     // Load document content from database
     const loadDocument = async (docId: DocId): Promise<any> => {
@@ -66,11 +67,17 @@ export const setupCollabSocket = (io: Server) => {
 
     // Save document content to database
     const saveDocument = async (docId: DocId, content: any) => {
+      const newContent = JSON.stringify(content);
+
+      // Avoid saving duplicate data
+      if (newContent === lastSavedContent) return;
+
       try {
         await pgPool.query("UPDATE documents SET data = $1 WHERE id = $2", [
           JSON.stringify(content),
           docId,
         ]);
+        lastSavedContent = newContent; // Update last saved state
         console.log(`Document ${docId} saved`);
       } catch (err) {
         console.error("Error saving document:", err);
@@ -97,8 +104,6 @@ export const setupCollabSocket = (io: Server) => {
     socket.on("join-document", async (docId: DocId, authToken: string) => {
       try {
         console.log(`Attempting to join document ${docId} with token`);
-
-        // Verify JWT and get user ID
         // Verify JWT and get user ID
         let decoded;
         try {
@@ -170,10 +175,10 @@ export const setupCollabSocket = (io: Server) => {
         saveDocument(currentDocId!, delta);
         saveDocumentVersion();
         pendingChanges = 0;
-      }, 1000);
+      }, 60000);
 
-      // Save immediately if many changes accumulated
-      if (pendingChanges >= 10) {
+      // **Save immediately if pending changes exceed 20**
+      if (pendingChanges >= 100) {
         if (saveVersionTimeout) clearTimeout(saveVersionTimeout);
         saveDocument(currentDocId, delta);
         saveDocumentVersion();
@@ -218,6 +223,14 @@ export const setupCollabSocket = (io: Server) => {
         activeDocuments.delete(currentDocId);
         documentVersions.delete(currentDocId);
       }
+
+      // Save document when server shuts down
+      process.on("beforeExit", async () => {
+        if (currentDocId) {
+          const content = activeDocuments.get(currentDocId);
+          await saveDocument(currentDocId, content);
+        }
+      });
     });
   });
 };
