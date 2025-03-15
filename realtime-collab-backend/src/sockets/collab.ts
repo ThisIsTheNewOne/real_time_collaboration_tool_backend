@@ -170,7 +170,7 @@ export const setupCollabSocket = (io: Server) => {
         saveDocument(currentDocId!, delta);
         saveDocumentVersion();
         pendingChanges = 0;
-      }, 3000);
+      }, 1000);
 
       // Save immediately if many changes accumulated
       if (pendingChanges >= 10) {

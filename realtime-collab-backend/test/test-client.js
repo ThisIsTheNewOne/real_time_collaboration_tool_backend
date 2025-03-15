@@ -39,21 +39,48 @@ function sendTextChange(content) {
   });
 }
 
-// Wait for connection and document joining before testing changes
+// // Wait for connection and document joining before testing changes
+// socket.on("document-content", (content) => {
+//   console.log("Document loaded:", content);
+  
+//   // Send a test change after a short delay
+//   setTimeout(() => {
+//     console.log("Sending test change...");
+//     sendTextChange("This is a test edit!");
+//   }, 2000);
+  
+//   // Send another change a bit later
+//   setTimeout(() => {
+//     console.log("Sending another test change...");
+//     sendTextChange("This is a new update and it should work haha");
+//   }, 5000);
+// });
+
+// Manual testing
+const readline = require('readline');
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
 socket.on("document-content", (content) => {
   console.log("Document loaded:", content);
   
-  // Send a test change after a short delay
-  setTimeout(() => {
-    console.log("Sending test change...");
-    sendTextChange("This is a test edit!");
-  }, 2000);
+  // Prompt for text changes
+  function promptForChanges() {
+    rl.question('Enter text to update (or "exit" to quit): ', (input) => {
+      if (input.toLowerCase() === 'exit') {
+        rl.close();
+        socket.disconnect();
+        return;
+      }
+      
+      sendTextChange(input);
+      promptForChanges();
+    });
+  }
   
-  // Send another change a bit later
-  setTimeout(() => {
-    console.log("Sending another test change...");
-    sendTextChange("This is a new update and it should work haha");
-  }, 5000);
+  promptForChanges();
 });
 
 // Listen for active users updates
