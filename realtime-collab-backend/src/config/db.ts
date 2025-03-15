@@ -13,13 +13,15 @@ export const pgPool = new Pool( {
     database: process.env.PG_DATABASE, // Database name
     password: process.env.PG_PASSWORD, // Database password
     port: Number(process.env.PG_PORT) || 5432, // Default PostgreSQL port
-    
+    max: 10,
 })
 
 // Redis is used for presence tracking && caching
 export const redisClient = createClient( {
     url: process.env.REDIS_URL  ||  'redis://localhost:6379' // Default Redis URL
 });
+
+redisClient.on('error', (err) => console.log('Redis Client Error', err));
 
 // Connect the Database
 export const connectDB = async () => {

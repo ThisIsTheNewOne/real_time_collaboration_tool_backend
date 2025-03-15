@@ -3,8 +3,8 @@ import http from "http"
 import { Server } from "socket.io"
 import cors from "cors"
 import dotenv from "dotenv"
-import { setupCollabSocket } from "./sockets/collab"
-import { connectDB } from "./config/db"
+import { setupCollabSocket } from "./sockets/collab22"
+import { connectDB, pgPool } from "./config/db"
 import documentsRouter from './routes/documents';
 import authRouter from './routes/auth';
 
@@ -39,6 +39,8 @@ const io = new Server( server, {
         methods: ['GET', 'POST'],
         credentials: true
     },
+    pingTimeout: 30000,
+    pingInterval: 60000,
     transports: ['websocket'], // Force WebSocket-only
     connectionStateRecovery: {
         maxDisconnectionDuration: 2 * 60 * 1000 // 2 minutes
@@ -53,6 +55,16 @@ setupCollabSocket(io);
 app.get("/health", (req, res) => {
     res.status(200).json({ status: "ok" });
 });
+
+// server.ts
+app.get('/test-db', async (req, res) => {
+    try {
+      const result = await pgPool.query('SELECT 1 + 1 AS solution');
+      res.json({ solution: result.rows[0].solution });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
 // start the server
 // starts the server on the specified port (from .env or default 5000).

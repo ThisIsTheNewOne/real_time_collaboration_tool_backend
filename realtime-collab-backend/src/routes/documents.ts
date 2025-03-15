@@ -1,6 +1,7 @@
 import { pgPool } from "../config/db";
 import { authMiddleware } from "../middleware/auth";
 import router from "./auth";
+import crypto from "crypto";
 
 // Create a document
 router.post("/", authMiddleware, async (req, res) => {
@@ -8,12 +9,32 @@ router.post("/", authMiddleware, async (req, res) => {
   const userId = req.user!.id; // From JWT middleware
 
   try {
+    // Create a document with the proper schema
+    const documentData = JSON.stringify({
+      title: title || "",
+      content: "",
+    });
+
+    // Use a UUID for document ID
+    const docId = crypto.randomUUID(); // Add import for crypto if needed
+
     const result = await pgPool.query(
-      "INSERT INTO documents (title, created_by) VALUES ($1, $2) RETURNING *",
-      [title, userId]
+      "INSERT INTO documents (collection, id, doc_type, data) VALUES ($1, $2, $3, $4) RETURNING *",
+      ["documents", docId, "json0", documentData]
     );
-    res.status(201).json(result.rows[0]);
+
+    // Handle data that might be string or already parsed object
+    const data =
+      typeof result.rows[0].data === "string"
+        ? JSON.parse(result.rows[0].data)
+        : result.rows[0].data;
+
+    res.status(201).json({
+      ...result.rows[0],
+      data,
+    });
   } catch (err) {
+    console.error("Document creation error:", err);
     res.status(500).json({ error: "Failed to create document" });
   }
 });
