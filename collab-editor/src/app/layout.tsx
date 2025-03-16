@@ -1,20 +1,35 @@
+import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
-import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Collaborative Document Editor',
-  description: 'Real-time collaborative document editor',
-};
+import Navbar from '@/components/Navbar';
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50">
-        <main className="min-h-screen">{children}</main>
+      <head>
+        <title>CollabEditor</title>
+        <meta name="description" content="Collaborative document editing platform" />
+      </head>
+      <body>
+        <AuthProvider>
+          <div className="flex flex-col min-h-screen">
+            <Navbar />
+            <main className="flex-grow">
+              {children}
+            </main>
+            <footer className="bg-gray-50 border-t border-gray-200 py-4">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <p className="text-center text-sm text-gray-500">
+                  © {new Date().getFullYear()} CollabEditor. All rights reserved.
+                </p>
+              </div>
+            </footer>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

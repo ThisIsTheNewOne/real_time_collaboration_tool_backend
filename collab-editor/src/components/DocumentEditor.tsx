@@ -170,6 +170,13 @@ export default function DocumentEditor({
     }
   };
 
+  const handlePermissionRemoved = (userId: string) => {
+    // Update the permissions list by filtering out the removed permission
+    setPermissions((currentPermissions) =>
+      currentPermissions.filter((permission) => permission.id !== userId)
+    );
+  };
+
   return (
     <div className="flex flex-col h-full">
       <DocumentHeader
@@ -207,6 +214,9 @@ export default function DocumentEditor({
         <PermissionsTable
           permissions={permissions}
           isLoading={loadingPermissions}
+          documentId={documentId}
+          token={token}
+          onPermissionRemoved={handlePermissionRemoved}
         />
       )}
     </div>
