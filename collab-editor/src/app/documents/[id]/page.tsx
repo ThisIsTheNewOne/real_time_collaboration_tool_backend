@@ -1,8 +1,9 @@
 'use client';
 
+import DocumentEditor from '@/components/DocumentEditor';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import DocumentEditor from '@/components/DocumentEditor';
+
 
 export default function DocumentPage() {
   const params = useParams();
