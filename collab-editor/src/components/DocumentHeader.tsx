@@ -45,7 +45,7 @@ export default function DocumentHeader({
   return (
     <div className="flex items-center justify-between p-4 border-b">
       <div>
-        {isEditingTitle ? (
+        {isEditingTitle && accessLevel === "owner" ? (
           <input
             ref={titleInputRef}
             type="text"
@@ -57,11 +57,11 @@ export default function DocumentHeader({
           />
         ) : (
           <h1 
-            className={`text-xl font-semibold ${canEdit ? 'cursor-pointer hover:text-blue-600' : ''}`}
+            className={`text-xl font-semibold ${canEdit && accessLevel === "owner" ? 'cursor-pointer hover:text-blue-600' : ''}`}
             onClick={startEditingTitle}
           >
             {title || 'Untitled Document'}
-            {canEdit && <span className="text-xs text-gray-400 ml-2">(Click to edit)</span>}
+            {canEdit && accessLevel === "owner" && <span className="text-xs text-gray-400 ml-2">(Click to edit)</span>}
           </h1>
         )}
         <p className="text-sm text-gray-500">{status}</p>
