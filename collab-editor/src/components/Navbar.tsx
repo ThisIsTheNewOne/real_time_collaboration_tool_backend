@@ -1,61 +1,115 @@
 "use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
-import { usePathname } from 'next/navigation';
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
+import { usePathname } from "next/navigation";
+import MobileMenu from "./MobileMenu";
 
 export default function Navbar() {
   const { user, isAuthenticated, loading, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const pathname = usePathname();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
+
+  // Handle clicks outside the dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+
+  console.log("This is the user ", user)
 
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
+          {/* Left Side - Brand & Navigation */}
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="text-xl font-bold text-blue-600">
                 CollabEditor
               </Link>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {isAuthenticated && (
-                <Link 
-                  href="/documents" 
+            {isAuthenticated && (
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                <Link
+                  href="/documents"
                   className={`${
-                    pathname === '/documents' 
-                      ? 'border-blue-500 text-gray-900' 
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    pathname === "/documents"
+                      ? "border-blue-500 text-gray-900"
+                      : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                   } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   My Documents
                 </Link>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-          
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+
+          {/* Right Side - User Info or Login */}
+          <div className="hidden sm:flex sm:items-center">
             {loading ? (
               <div className="animate-pulse h-8 w-24 bg-gray-200 rounded-md"></div>
             ) : isAuthenticated ? (
-              <div className="relative ml-3">
-                <div className="flex items-center space-x-4">
-                  <div className="text-sm font-medium text-gray-700">
-                    {user?.email}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={toggleDropdown}
+                  className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
+                >
+                  <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                    {user?.email.charAt(0).toUpperCase()}
                   </div>
-                  <button
-                    onClick={logout}
-                    className="bg-white hover:bg-gray-50 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  <span className="text-sm font-medium">{user?.email}</span>
+                  <svg 
+                    className={`h-5 w-5 text-gray-400 ${isDropdownOpen ? 'transform rotate-180' : ''}`} 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
                   >
-                    Log out
-                  </button>
-                </div>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {/* User Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="user-menu">
+                      <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                        Signed in as <span className="font-semibold">{user?.email}</span>
+                      </div>
+                      <Link 
+                        href="/profile" 
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
+                      >
+                        Your Profile
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          logout();
+                        }}
+                        className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Link
@@ -66,25 +120,20 @@ export default function Navbar() {
               </Link>
             )}
           </div>
-          
-          {/* Mobile menu button */}
+
+          {/* Mobile Menu Button */}
           <div className="flex items-center sm:hidden">
             <button
               type="button"
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-              aria-controls="mobile-menu"
-              aria-expanded="false"
               onClick={toggleMenu}
             >
               <span className="sr-only">Open main menu</span>
-              {/* Icon when menu is closed */}
               <svg
-                className={`${isMenuOpen ? 'hidden' : 'block'} h-6 w-6`}
-                xmlns="http://www.w3.org/2000/svg"
+                className={`h-6 w-6 ${isMenuOpen ? "hidden" : "block"}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -93,14 +142,11 @@ export default function Navbar() {
                   d="M4 6h16M4 12h16M4 18h16"
                 />
               </svg>
-              {/* Icon when menu is open */}
               <svg
-                className={`${isMenuOpen ? 'block' : 'hidden'} h-6 w-6`}
-                xmlns="http://www.w3.org/2000/svg"
+                className={`h-6 w-6 ${isMenuOpen ? "block" : "hidden"}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -114,52 +160,15 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu, show/hide based on menu state */}
-      <div
-        className={`${isMenuOpen ? 'block' : 'hidden'} sm:hidden`}
-        id="mobile-menu"
-      >
-        <div className="pt-2 pb-3 space-y-1">
-          {isAuthenticated && (
-            <Link 
-              href="/documents"
-              className={`${
-                pathname === '/documents' 
-                  ? 'bg-blue-50 border-blue-500 text-blue-700' 
-                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
-              } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
-            >
-              My Documents
-            </Link>
-          )}
-        </div>
-        <div className="pt-4 pb-3 border-t border-gray-200">
-          {loading ? (
-            <div className="animate-pulse h-8 mx-4 bg-gray-200 rounded-md"></div>
-          ) : isAuthenticated ? (
-            <div className="space-y-3 px-4">
-              <div className="text-base font-medium text-gray-800">
-                {user?.email}
-              </div>
-              <button
-                onClick={logout}
-                className="w-full flex justify-center bg-white hover:bg-gray-50 px-4 py-2 border border-gray-300 rounded-md text-base font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Log out
-              </button>
-            </div>
-          ) : (
-            <div className="px-4">
-              <Link
-                href="/login"
-                className="w-full flex justify-center bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Log in
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
+      <MobileMenu
+        isMenuOpen={isMenuOpen}
+        toggleMenu={toggleMenu}
+        isAuthenticated={isAuthenticated}
+        pathname={pathname}
+        user={user}
+        loading={loading}
+        logout={logout}
+      />
     </nav>
   );
 }

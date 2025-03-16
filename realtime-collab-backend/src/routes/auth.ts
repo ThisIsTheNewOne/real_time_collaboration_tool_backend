@@ -9,6 +9,8 @@ const router = express.Router();
 // Register
 router.post("/register", asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+  
+  console.log("this is the email", email);
 
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password required" });

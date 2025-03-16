@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
+import { getCurrentUser } from '@/lib/api';
 
 interface UserData {
   id: string;
@@ -16,37 +17,54 @@ export function useAuth() {
 
   // Load token from localStorage on component mount
   useEffect(() => {
-    setLoading(true);
-    const storedToken = localStorage.getItem('authToken');
-    
-    if (storedToken) {
-      try {
-        // Decode the token to get user data
-        const decodedToken = jwtDecode<UserData & { exp: number }>(storedToken);
-        
-        // Check if token is expired
-        if (decodedToken.exp * 1000 < Date.now()) {
-          // Token expired, remove it
+    const loadUserData = async () => {
+      setLoading(true);
+      const storedToken = localStorage.getItem('authToken');
+      
+      if (storedToken) {
+        try {
+          // Verify the token is valid by decoding it
+          const decodedToken = jwtDecode<{id: string, exp: number}>(storedToken);
+          
+          // Check if token is expired
+          if (decodedToken.exp * 1000 < Date.now()) {
+            localStorage.removeItem('authToken');
+            setToken(null);
+            setUser(null);
+          } else {
+            // Token is valid, fetch complete user data from API
+            setToken(storedToken);
+            
+            try {
+              const userData = await getCurrentUser(storedToken);
+
+              const userDataFull = {
+                id: decodedToken.id,
+                email: userData.email,
+                name: userData.email
+              }
+
+              setUser(userDataFull);
+            } catch (error) {
+              console.error('Failed to fetch user data:', error);
+              // If we can't get user data, we still have basic info from token
+              setUser({
+                id: decodedToken.id,
+                email: '', // We don't have this from the token alone
+                // created_at: new Date().toISOString()
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Invalid token:', error);
           localStorage.removeItem('authToken');
-          setToken(null);
-          setUser(null);
-        } else {
-          // Valid token
-          setToken(storedToken);
-          setUser({
-            id: decodedToken.id,
-            email: decodedToken.email,
-            name: decodedToken.name
-          });
         }
-      } catch (error) {
-        // Invalid token
-        console.error('Invalid token:', error);
-        localStorage.removeItem('authToken');
       }
-    }
-    
-    setLoading(false);
+      
+      setLoading(false);
+    };
+
+    loadUserData();
   }, []);
 
   // Login function

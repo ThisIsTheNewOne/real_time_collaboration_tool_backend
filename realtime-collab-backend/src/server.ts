@@ -8,6 +8,7 @@ import { setupCollabSocket } from "./sockets/collab"
 import { connectDB, pgPool } from "./config/db"
 import documentsRouter from './routes/documents';
 import authRouter from './routes/auth';
+import userRouter from './routes/user';
 
 //Initialize Environment Variables
 dotenv.config();
@@ -30,6 +31,7 @@ connectDB();
 // After middleware setup
 app.use('/api/documents', documentsRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/user', userRouter);
 
 //configure Socket.io
 const io = new Server( server, {
@@ -74,4 +76,3 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 })
-
