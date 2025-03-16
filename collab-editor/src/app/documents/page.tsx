@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 interface Document {
-    created_at: string,
-    data: {title: string, content: string}
-    id: string
-    owner_id: string
-    visibility: string
+  created_at: string;
+  data: { title: string; content: string };
+  id: string;
+  owner_id: string;
+  visibility: string;
 }
 
 export default function DocumentsPage() {
@@ -83,12 +83,15 @@ export default function DocumentsPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/documents/${docId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/documents/${docId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to delete document");

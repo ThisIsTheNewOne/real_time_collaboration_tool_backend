@@ -11,3 +11,10 @@ export interface Document {
     id: string;
     email: string;
   }
+
+  export interface DocumentPermission {
+    email: string;
+    id: string;
+    permission_level: 'view' | 'edit';
+    created_at: string;
+  }

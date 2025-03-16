@@ -127,6 +127,39 @@ export const setupCollabSocket = (io: Server) => {
           return;
         }
 
+        // Check document access permission
+        const permResult = await pgPool.query(
+          `
+          SELECT d.*,
+                 d.visibility,
+                 CASE 
+                   WHEN d.owner_id = $1 THEN 'owner'
+                   WHEN dp.permission_level IS NOT NULL THEN dp.permission_level
+                   WHEN d.visibility = 'public' THEN 'view'
+                   ELSE NULL
+                 END as access_level
+          FROM documents d
+          LEFT JOIN document_permissions dp ON d.id = dp.document_id AND dp.user_id = $1
+          WHERE d.id = $2 AND (
+            d.owner_id = $1                     -- User owns the document
+            OR d.visibility = 'public'          -- Document is public
+            OR dp.user_id IS NOT NULL           -- User has explicit permission
+          )
+          `,
+          [userId, docId]
+        );
+
+        if (permResult.rows.length === 0) {
+          socket.emit("error", "Access denied");
+          return;
+        }
+
+        const accessLevel = permResult.rows[0].access_level;
+        const visibility = permResult.rows[0].visibility;
+        // Allow edit if document is public OR user has owner/edit permission
+        const canEdit =
+          visibility === "public" || ["owner", "edit"].includes(accessLevel);
+
         currentDocId = docId;
         socket.join(docId);
 
@@ -134,7 +167,12 @@ export const setupCollabSocket = (io: Server) => {
         const docContent = await loadDocument(docId);
 
         // Send initial data to client
-        socket.emit("document-content", docContent);
+        socket.emit("document-content", {
+          ...docContent,
+          access_level: accessLevel,
+          can_edit: canEdit,
+          visibility: visibility,
+        });
 
         // Sync presence
         await redisClient.hSet(
@@ -161,22 +199,34 @@ export const setupCollabSocket = (io: Server) => {
       // Check permission level
       const permResult = await pgPool.query(
         `
-      SELECT 
-        CASE 
-          WHEN d.owner_id = $1 THEN 'owner'
-          WHEN dp.permission_level = 'edit' THEN 'edit'
-          ELSE NULL
-        END as access_level
-      FROM documents d
-      LEFT JOIN document_permissions dp ON d.id = dp.document_id AND dp.user_id = $1
-      WHERE d.id = $2
-      `,
+        SELECT 
+          d.visibility,
+          CASE 
+            WHEN d.owner_id = $1 THEN 'owner'
+            WHEN dp.permission_level = 'edit' THEN 'edit'
+            ELSE NULL
+          END as access_level
+        FROM documents d
+        LEFT JOIN document_permissions dp ON d.id = dp.document_id AND dp.user_id = $1
+        WHERE d.id = $2
+        `,
         [userId, currentDocId]
       );
 
-      const accessLevel = permResult.rows[0]?.access_level;
+      if (permResult.rows.length === 0) {
+        socket.emit("error", "Document not found");
+        return;
+      }
 
-      if (!accessLevel || !["owner", "edit"].includes(accessLevel)) {
+      const { visibility, access_level } = permResult.rows[0];
+      // Allow edit if:
+      // 1. Document is public, OR
+      // 2. User has owner/edit permission
+      const canEdit =
+        visibility === "public" ||
+        (access_level && ["owner", "edit"].includes(access_level));
+
+      if (!canEdit) {
         socket.emit(
           "error",
           "You don't have edit permission for this document"
