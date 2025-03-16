@@ -37,6 +37,7 @@ export async function fetchDocument(
 
 export async function createDocument(
   title: string,
+  visibility: "public" | "private",
   token: string
 ): Promise<Document> {
   const response = await fetch(`${API_URL}/documents`, {
@@ -45,7 +46,7 @@ export async function createDocument(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title, visibility }),
   });
 
   if (!response.ok) {

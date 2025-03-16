@@ -13,13 +13,6 @@ export interface User {
   created_at: string;
 }
 
-interface DocumentType {
-  created_at: string;
-  data: { title: string; content: string };
-  id: string;
-  owner_id: string;
-  visibility: string;
-}
 
 export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -66,8 +59,10 @@ export function useDocuments() {
     try {
       setError("");
       
+      const visibility = "private";
+
       // Use the API function instead of direct fetch
-      const newDoc = await apiCreateDocument(title, token);
+      const newDoc = await apiCreateDocument(title, visibility, token);
       
       setDocuments(prev => [...prev, newDoc as any]);
       return true;
