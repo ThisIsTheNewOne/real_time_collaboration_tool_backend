@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 interface Document {
-  id: string;
-  title: string;
-  content: string;
+    created_at: string,
+    data: {title: string, content: string}
+    id: string
+    owner_id: string
+    visibility: string
 }
 
 export default function DocumentsPage() {
@@ -139,7 +141,7 @@ export default function DocumentsPage() {
             >
               <Link href={`/documents/${doc.id}`} className="flex-1">
                 <h2 className="text-xl font-semibold">
-                  {doc.title || "Untitled Document"}
+                  {doc.data.title || "Untitled Document"}
                 </h2>
               </Link>
               <button
