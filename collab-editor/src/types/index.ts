@@ -1,15 +1,16 @@
 export interface Document {
-    id: string;
-    data: {
-      title: string;
-      content: string;
-    };
-    created_at?: string;
-  }
+  created_at: string;
+  data: { title: string; content: string };
+  id: string;
+  owner_id: string;
+  visibility: string;
+}
+
   
   export interface User {
     id: string;
     email: string;
+    created_at: string;
   }
 
   export interface DocumentPermission {
