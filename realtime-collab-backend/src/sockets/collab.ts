@@ -156,10 +156,33 @@ export const setupCollabSocket = (io: Server) => {
 
     // Handle text changes
     socket.on("text-change", async (delta: any) => {
-      if (!currentDocId) return;
+      if (!currentDocId || !userId) return;
 
-      // Apply change to document content
-      const docContent = activeDocuments.get(currentDocId);
+      // Check permission level
+      const permResult = await pgPool.query(
+        `
+      SELECT 
+        CASE 
+          WHEN d.owner_id = $1 THEN 'owner'
+          WHEN dp.permission_level = 'edit' THEN 'edit'
+          ELSE NULL
+        END as access_level
+      FROM documents d
+      LEFT JOIN document_permissions dp ON d.id = dp.document_id AND dp.user_id = $1
+      WHERE d.id = $2
+      `,
+        [userId, currentDocId]
+      );
+
+      const accessLevel = permResult.rows[0]?.access_level;
+
+      if (!accessLevel || !["owner", "edit"].includes(accessLevel)) {
+        socket.emit(
+          "error",
+          "You don't have edit permission for this document"
+        );
+        return;
+      }
 
       // In a real implementation, you'd want to apply the delta
       // This is simplified - assumes delta is the full new content
