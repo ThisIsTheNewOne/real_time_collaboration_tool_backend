@@ -57,7 +57,7 @@ export default function DocumentsPage() {
       
       // For now, we'll just mark current user's documents
       const creatorMap: Record<string, string> = {};
-      ownerIds.forEach(id => {
+      ownerIds.forEach((id: any) => {
         creatorMap[id] = id === userInfo.id ? "You" : "Other User";
       });
       
