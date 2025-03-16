@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/api";
 
 interface Document {
   created_at: string;
@@ -9,6 +10,13 @@ interface Document {
   id: string;
   owner_id: string;
   visibility: string;
+  creator_email?: string; // Added field for creator email
+}
+
+interface User {
+  id: string;
+  email: string;
+  created_at: string;
 }
 
 export default function DocumentsPage() {
@@ -16,6 +24,8 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newTitle, setNewTitle] = useState("");
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [creators, setCreators] = useState<Record<string, string>>({});
 
   const fetchDocuments = async () => {
     const token = localStorage.getItem("authToken");
@@ -25,6 +35,11 @@ export default function DocumentsPage() {
     }
 
     try {
+      // Get current user info
+      const userInfo = await getCurrentUser(token);
+      setCurrentUser(userInfo);
+
+      // Fetch documents
       const response = await fetch("http://localhost:5000/api/documents", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -36,6 +51,17 @@ export default function DocumentsPage() {
       }
 
       const data = await response.json();
+      
+      // Collect unique owner IDs from documents
+      const ownerIds = new Set(data.map((doc: Document) => doc.owner_id));
+      
+      // For now, we'll just mark current user's documents
+      const creatorMap: Record<string, string> = {};
+      ownerIds.forEach(id => {
+        creatorMap[id] = id === userInfo.id ? "You" : "Other User";
+      });
+      
+      setCreators(creatorMap);
       setDocuments(data);
     } catch (err) {
       setError((err as Error).message);
@@ -104,6 +130,16 @@ export default function DocumentsPage() {
     }
   };
 
+  // Separate documents by visibility
+  const privateDocuments = documents.filter(doc => doc.visibility === 'private');
+  const publicDocuments = documents.filter(doc => doc.visibility === 'public');
+
+  // Get creator display name
+  const getCreatorDisplay = (ownerId: string) => {
+    if (!currentUser) return "Unknown";
+    return ownerId === currentUser.id ? "You" : creators[ownerId] || "Other User";
+  };
+
   if (loading) return <div className="p-8">Loading documents...</div>;
 
   return (
@@ -133,30 +169,102 @@ export default function DocumentsPage() {
         </button>
       </form>
 
-      <div className="space-y-4">
-        {documents.length === 0 ? (
-          <p>No documents yet. Create your first document above!</p>
-        ) : (
-          documents.map((doc) => (
-            <div
-              key={doc.id}
-              className="flex justify-between items-center p-4 border rounded hover:bg-gray-50"
-            >
-              <Link href={`/documents/${doc.id}`} className="flex-1">
-                <h2 className="text-xl font-semibold">
-                  {doc.data.title || "Untitled Document"}
-                </h2>
-              </Link>
-              <button
-                onClick={() => deleteDocument(doc.id)}
-                className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Delete
-              </button>
+      {documents.length === 0 ? (
+        <p>No documents yet. Create your first document above!</p>
+      ) : (
+        <div className="space-y-8">
+          {/* PRIVATE DOCUMENTS SECTION */}
+          <div>
+            <h2 className="text-2xl font-semibold mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
+              Private Documents ({privateDocuments.length})
+            </h2>
+            
+            <div className="space-y-4 mb-8">
+              {privateDocuments.length === 0 ? (
+                <p className="text-gray-500 italic">No private documents.</p>
+              ) : (
+                privateDocuments.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex justify-between items-center p-4 border rounded hover:bg-gray-50 border-yellow-200"
+                  >
+                    <Link href={`/documents/${doc.id}`} className="flex-1">
+                      <div>
+                        <h3 className="text-xl font-semibold">
+                          {doc.data.title || "Untitled Document"}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {new Date(doc.created_at).toLocaleDateString()} · Private
+                        </p>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => deleteDocument(doc.id)}
+                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
-          ))
-        )}
-      </div>
+          </div>
+
+          {/* PUBLIC DOCUMENTS SECTION */}
+          <div>
+            <h2 className="text-2xl font-semibold mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Public Documents ({publicDocuments.length})
+            </h2>
+            
+            <div className="space-y-4">
+              {publicDocuments.length === 0 ? (
+                <p className="text-gray-500 italic">No public documents.</p>
+              ) : (
+                publicDocuments.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex justify-between items-center p-4 border rounded hover:bg-gray-50 border-green-200"
+                  >
+                    <Link href={`/documents/${doc.id}`} className="flex-1">
+                      <div>
+                        <h3 className="text-xl font-semibold">
+                          {doc.data.title || "Untitled Document"}
+                        </h3>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <p>{new Date(doc.created_at).toLocaleDateString()}</p>
+                          <span>·</span>
+                          <p>Public</p>
+                          <span>·</span>
+                          <p className="font-medium">
+                            Created by: {getCreatorDisplay(doc.owner_id)}
+                            {doc.owner_id === currentUser?.id && (
+                              <span className="ml-1 text-xs bg-blue-100 text-blue-800 px-1 rounded">You</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                    {doc.owner_id === currentUser?.id && (
+                      <button
+                        onClick={() => deleteDocument(doc.id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

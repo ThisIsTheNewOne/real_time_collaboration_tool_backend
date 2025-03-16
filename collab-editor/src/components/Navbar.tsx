@@ -30,7 +30,6 @@ export default function Navbar() {
     };
   }, [dropdownRef]);
 
-  console.log("This is the user ", user)
 
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm">
@@ -39,7 +38,7 @@ export default function Navbar() {
           {/* Left Side - Brand & Navigation */}
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold text-blue-600">
+              <Link href="/documents" className="text-xl font-bold text-blue-600">
                 CollabEditor
               </Link>
             </div>
