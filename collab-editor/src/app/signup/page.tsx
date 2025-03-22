@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { register } from "@/lib/api";
@@ -8,7 +8,7 @@ import AuthLayout from "@/components/AuthLayout";
 import FormInput from "@/components/FormInput";
 import LoadingButton from "@/components/LoadingButton";
 import Alert from "@/components/Alert";
-
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -18,6 +18,13 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/documents");
+    }
+  }, [isAuthenticated, router]);
 
   const validateForm = () => {
     // Reset error
@@ -47,32 +54,33 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
     setError("");
-    
+
     try {
       // Call the register API function
       await register(email, password);
-      
+
       // Set success message
-      setSuccessMessage("Account created successfully! Redirecting to login...");
-      
+      setSuccessMessage(
+        "Account created successfully! Redirecting to login..."
+      );
+
       // Clear form
       setEmail("");
       setPassword("");
       setConfirmPassword("");
-      
+
       // Redirect to login page after 2 seconds
       setTimeout(() => {
         router.push("/login?registered=true");
       }, 2000);
-      
     } catch (err) {
       if (err instanceof Error) {
-        console.log("This is very important", err )
+        console.log("This is very important", err);
         setError(err.message);
       } else {
         setError("Registration failed. Please try again.");
@@ -83,8 +91,8 @@ export default function SignupPage() {
   };
 
   return (
-    <AuthLayout 
-      title="Create an Account" 
+    <AuthLayout
+      title="Create an Account"
       subtitle="Join CollabEditor to create and share documents"
     >
       {error && <Alert type="error">{error}</Alert>}
@@ -137,7 +145,10 @@ export default function SignupPage() {
       <div className="mt-6 text-center">
         <p className="text-gray-600">
           Already have an account?{" "}
-          <Link href="/login" className="text-blue-600 hover:text-blue-800 font-medium">
+          <Link
+            href="/login"
+            className="text-blue-600 hover:text-blue-800 font-medium"
+          >
             Log in
           </Link>
         </p>

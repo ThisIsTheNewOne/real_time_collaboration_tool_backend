@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { usePathname } from "next/navigation";
 import MobileMenu from "./MobileMenu";
+import { useAuthContext } from "@/context/AuthContext";
 
 export default function Navbar() {
-  const { user, isAuthenticated, loading, logout } = useAuth();
+  const { user, isAuthenticated, loading, logout } = useAuthContext();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const pathname = usePathname();
@@ -15,6 +16,15 @@ export default function Navbar() {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
+
+    // Add console logs to see the current state
+    console.log("Navbar render - Auth state:", { 
+      isAuthenticated, 
+      loading, 
+      userExists: !!user,
+      userEmail: user?.email 
+    });
+
 
   // Handle clicks outside the dropdown to close it
   useEffect(() => {

@@ -3,13 +3,13 @@
 import { FormEvent, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useAuthContext } from "@/context/AuthContext";
 import { login } from "@/lib/api";
 import AuthLayout from "@/components/AuthLayout";
-
 import FormInput from "@/components/FormInput";
 import LoadingButton from "@/components/LoadingButton";
 import Alert from "@/components/Alert";
+import { useAuthContext } from "@/context/AuthContext";
+
 
 
 export default function LoginPage() {
@@ -20,7 +20,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login: setAuth } = useAuthContext();
+  const { isAuthenticated, loading, login: newLogIn } = useAuthContext();
+  
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      console.log("User is authenticated, redirecting to documents");
+      router.push("/documents");
+    }
+  }, [isAuthenticated, loading, router]);
 
   useEffect(() => {
     // Check if user just registered
@@ -37,15 +45,23 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // First, call the API to get the token
       const result = await login(email, password);
-
-      if (setAuth(result.token)) {
+      
+      // Then use our hook's login function to set the auth state
+      const success = await newLogIn(result.token);
+      
+      if (success) {
         router.push("/documents");
       } else {
-        setError("Invalid login credentials. Please try again.");
+        setError("Failed to process login. Please try again.");
       }
     } catch (err) {
-      setError("Failed to login. Please check your credentials and try again.");
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to login. Please check your credentials and try again.");
+      }
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);
