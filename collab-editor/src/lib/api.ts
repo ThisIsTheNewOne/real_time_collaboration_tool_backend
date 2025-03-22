@@ -194,15 +194,18 @@ export async function register(
   });
 
   if (!response.ok) {
-    // Get more detailed error if available
-    try {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Registration failed");
-    } catch (e) {
-      throw new Error("Registration failed");
+    // Extract the error message from the response
+    const errorData = await response.json();
+    
+    // Use specific error message if available
+    if (errorData && errorData.error) {
+      throw new Error(errorData.error);
     }
+    
+    // Fallback to generic error
+    throw new Error(`Registration failed (${response.status})`);
   }
-
+  
   return response.json();
 }
 

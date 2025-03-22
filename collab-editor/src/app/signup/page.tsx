@@ -72,6 +72,7 @@ export default function SignupPage() {
       
     } catch (err) {
       if (err instanceof Error) {
+        console.log("This is very important", err )
         setError(err.message);
       } else {
         setError("Registration failed. Please try again.");

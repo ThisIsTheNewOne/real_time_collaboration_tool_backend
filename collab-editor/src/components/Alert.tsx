@@ -1,30 +1,19 @@
-import { InputHTMLAttributes } from "react";
+import { ReactNode } from "react";
 
-interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  id: string;
-  helperText?: string;
+interface AlertProps {
+  type: "error" | "success";
+  children: ReactNode;
 }
 
-export default function FormInput({ 
-  label, 
-  id, 
-  helperText, 
-  ...props 
-}: FormInputProps) {
+export default function Alert({ type, children }: AlertProps) {
+  const styles = {
+    error: "bg-red-100 border-red-400 text-red-700",
+    success: "bg-green-100 border-green-400 text-green-700",
+  };
+
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      <input
-        id={id}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        {...props}
-      />
-      {helperText && (
-        <p className="text-xs text-gray-500 mt-1">{helperText}</p>
-      )}
+    <div className={`mb-4 p-3 border rounded ${styles[type]}`}>
+      {children}
     </div>
   );
 }
