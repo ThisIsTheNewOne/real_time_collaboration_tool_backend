@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { getDocumentPermissions, updateDocument } from "@/lib/api";
-import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import DocumentHeader from "./DocumentHeader";
 import PermissionsTable from "./PermissionsTable";
+
 import { DocumentPermission } from "@/types";
+import PagedEditor from "./PageEditor";
 
 interface DocumentEditorProps {
   documentId: string;
@@ -29,13 +30,8 @@ export default function DocumentEditor({
   const [visibility, setVisibility] = useState<Visibility>(null);
   const [permissions, setPermissions] = useState<DocumentPermission[]>([]);
   const [loadingPermissions, setLoadingPermissions] = useState(true);
+  
   const socketRef = useRef<Socket | null>(null);
-
-  // const { permissions, loadingPermissions } = useDocumentPermissions(
-  //   documentId,
-  //   token,
-  //   accessLevel
-  // );
 
   useEffect(() => {
     // Establish WebSocket connection
@@ -71,7 +67,6 @@ export default function DocumentEditor({
         setAccessLevel(data.access_level);
         setCanEdit(data.can_edit || false);
 
-        // Set visibility if provided from server
         if (data.visibility) {
           setVisibility(data.visibility);
         }
@@ -98,13 +93,11 @@ export default function DocumentEditor({
   // Fetch document permissions and visibility
   useEffect(() => {
     const fetchPermissionsAndVisibility = async () => {
-      // Only proceed if we know the access level
       if (!accessLevel) return;
 
       try {
         setLoadingPermissions(true);
 
-        // Only the owner can fetch permissions
         if (accessLevel === "owner") {
           const fetchedPermissions = await getDocumentPermissions(
             documentId,
@@ -113,12 +106,7 @@ export default function DocumentEditor({
           setPermissions(fetchedPermissions);
         }
 
-        // If we didn't get visibility from the socket, we might need to fetch it separately
-        // Note: In a real implementation, you might want to get visibility from a separate endpoint
-        // or include it in the document-content socket event
         if (visibility === null) {
-          // You might want to add a separate API call here to get document visibility
-          // For now, we'll default to "public" if not provided elsewhere
           setVisibility("public");
         }
       } catch (error) {
@@ -131,9 +119,7 @@ export default function DocumentEditor({
     fetchPermissionsAndVisibility();
   }, [accessLevel, documentId, token, visibility]);
 
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (!canEdit) return;
-    const newContent = e.target.value;
+  const handleContentChange = (newContent: string) => {
     setContent(newContent);
 
     if (socketRef.current) {
@@ -160,7 +146,6 @@ export default function DocumentEditor({
   const handleVisibilityChange = (newVisibility: Visibility) => {
     setVisibility(newVisibility);
 
-    // Notify other connected clients about the visibility change
     if (socketRef.current) {
       socketRef.current.emit("text-change", {
         title,
@@ -171,54 +156,52 @@ export default function DocumentEditor({
   };
 
   const handlePermissionRemoved = (userId: string) => {
-    // Update the permissions list by filtering out the removed permission
     setPermissions((currentPermissions) =>
       currentPermissions.filter((permission) => permission.id !== userId)
     );
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <DocumentHeader
-        title={title}
-        status={status}
-        canEdit={canEdit}
-        connected={connected}
-        accessLevel={accessLevel}
-        documentId={documentId}
-        token={token}
-        visibility={visibility}
-        onTitleChange={handleTitleChange}
-        onVisibilityChange={handleVisibilityChange}
-      />
-
-      <textarea
-        className="flex-1 p-4 w-full resize-none focus:outline-none border-0"
-        value={content}
-        onChange={handleContentChange}
-        placeholder={
-          canEdit
-            ? "Start writing..."
-            : "You don't have permission to edit this document."
-        }
-        readOnly={!canEdit}
-      />
-
-      {!canEdit && (
-        <div className="bg-yellow-50 p-2 text-center text-yellow-800 border-t border-yellow-100">
-          You have view-only access to this document
-        </div>
-      )}
-
-      {accessLevel === "owner" && (
-        <PermissionsTable
-          permissions={permissions}
-          isLoading={loadingPermissions}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <div className="flex flex-col h-full">
+        <DocumentHeader
+          title={title}
+          status={status}
+          canEdit={canEdit}
+          connected={connected}
+          accessLevel={accessLevel}
           documentId={documentId}
           token={token}
-          onPermissionRemoved={handlePermissionRemoved}
+          visibility={visibility}
+          onTitleChange={handleTitleChange}
+          onVisibilityChange={handleVisibilityChange}
         />
-      )}
+        
+        <PagedEditor
+          content={content}
+          onContentChange={handleContentChange}
+          canEdit={canEdit}
+          placeholder={canEdit 
+            ? "Start writing..." 
+            : "You don't have permission to edit this document."}
+        />
+
+        {!canEdit && (
+          <div className="bg-yellow-50 p-2 text-center text-yellow-800 border-t border-yellow-100">
+            You have view-only access to this document
+          </div>
+        )}
+
+        {accessLevel === "owner" && (
+          <PermissionsTable
+            permissions={permissions}
+            isLoading={loadingPermissions}
+            documentId={documentId}
+            token={token}
+            onPermissionRemoved={handlePermissionRemoved}
+          />
+        )}
+      </div>
     </div>
   );
 }
