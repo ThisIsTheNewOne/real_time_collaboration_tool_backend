@@ -10,7 +10,6 @@ const router = express.Router();
 router.get("/me", authMiddleware, asyncHandler(async (req, res) => {
   const userId = req.user!.id;
 
-  console.log("this is the email", userId);
   
   try {
     const userResult = await pgPool.query(

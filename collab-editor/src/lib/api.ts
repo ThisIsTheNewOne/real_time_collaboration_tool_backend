@@ -183,6 +183,30 @@ export async function removeDocumentPermission(
   return response.json();
 }
 
+export async function register(
+  email: string,
+  password: string
+): Promise<{ userId: string }> {
+  const response = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    // Get more detailed error if available
+    try {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Registration failed");
+    } catch (e) {
+      throw new Error("Registration failed");
+    }
+  }
+
+  return response.json();
+}
+
+
 export async function login(
   email: string,
   password: string
