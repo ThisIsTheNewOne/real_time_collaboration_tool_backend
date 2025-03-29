@@ -559,7 +559,8 @@ export default function PagedEditor({
           </div>
         </div>
       )}
-      // Then in the JSX part where you render the ExportPdfButton, add:
+
+
       <div className="flex space-x-2">
         <button
           onClick={() => setShowPreview(true)}
