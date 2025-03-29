@@ -122,9 +122,6 @@ export default function DocumentEditor({
   const handleContentChange = (newContent: string) => {
     // setContent(newContent);
 
-    console.log("This is the text that I need to split:", newContent)
-
-
     if (socketRef.current) {
       socketRef.current.emit("text-change", { title, content: newContent });
     }

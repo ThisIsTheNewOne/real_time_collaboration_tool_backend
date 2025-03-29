@@ -8,10 +8,10 @@ interface PagedEditorProps {
 }
 
 // Constants for page management
-const PAGE_HEIGHT = 520; // Reduced height to create a safety buffer
+const PAGE_HEIGHT = 820; // Reduced height to create a safety buffer
 const PAGE_WIDTH = 850;  // Width in pixels (standard page ratio)
-const PADDING = 40;      // Padding inside the page
-const BUFFER_HEIGHT = 20; // Safety buffer to trigger page split before overflow
+const PADDING = 0;      // Padding inside the page
+const BUFFER_HEIGHT = 40; // Safety buffer to trigger page split before overflow
 
 export default function PagedEditor({
   content,
@@ -20,11 +20,13 @@ export default function PagedEditor({
   placeholder = "Start writing..."
 }: PagedEditorProps) {
   const [pages, setPages] = useState<string[]>(['']);
-  const [totalPages, setTotalPages] = useState(1);
+  // const [totalPages, setTotalPages] = useState(1);
   const [focusedPageIndex, setFocusedPageIndex] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const contentMeasureRef = useRef<HTMLDivElement>(null);
+  const internalContent = useRef(content);
 
   // Function to split content into pages with a safety buffer
   const splitIntoPages = useCallback((text: string) => {
@@ -33,11 +35,16 @@ export default function PagedEditor({
     
     let remainingText = text;
     const result: string[] = [];
+
+    console.log("this is importanttest", remainingText)
     
     while (remainingText.length > 0) {
       // Test if current text fits in a page (with buffer)
       measureDiv.textContent = remainingText;
       const height = measureDiv.scrollHeight;
+
+
+      console.log("this is importanttest", measureDiv.scrollHeight)
       
       // Using a reduced threshold to ensure we split before scrollbars appear
       if (height <= (PAGE_HEIGHT - BUFFER_HEIGHT)) {
@@ -68,12 +75,7 @@ export default function PagedEditor({
       }
     }
     
-    // Ensure at least one page
-    if (result.length === 0) {
-      result.push('');
-    }
-    
-    return result;
+    return result.length === 0 ? [''] : result;
   }, []);
 
   // Function to check if content is approaching overflow threshold
@@ -85,12 +87,21 @@ export default function PagedEditor({
     return contentMeasureRef.current.scrollHeight > (PAGE_HEIGHT - BUFFER_HEIGHT);
   }, []);
 
+    // Initialize pages from content prop
+    useEffect(() => {
+      const newPages = splitIntoPages(content);
+      setPages(newPages);
+      internalContent.current = content;
+      setIsInitialized(true);
+    }, [content, splitIntoPages]);
 
   // Handle textarea changes with continuous checking
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>, pageIndex: number) => {
     if (!canEdit) return;
     
     const newText = e.target.value;
+    const newPages = [...pages];
+    newPages[pageIndex] = newText;
 
     console.log("This is the text that I need to split:", newText, isApproachingOverflow(newText))
     
@@ -99,19 +110,23 @@ export default function PagedEditor({
       // Content overflows - need to split it
       handleOverflow(newText, pageIndex, e.target.selectionStart);
     } else {
-      // No overflow - update normally
-      const newPages = [...pages];
-      newPages[pageIndex] = newText;
+      // // No overflow - update normally
+      // const newPages = [...pages];
+      // newPages[pageIndex] = newText;
 
-      console.log("This is the text that I need to split:", newPages)
+      // console.log("This is the text that I need to split:", newPages)
   
   
-      // Update the pages state
-      setPages(newPages);
+      // // Update the pages state
+      // setPages(newPages);
       
-      // Notify parent of content change
-      console.log("This is the text that I need to split:", newPages.join(''))
-      onContentChange(newPages.join(''));
+      // // Notify parent of content change
+      // console.log("This is the text that I need to split:", newPages.join(''))
+      // onContentChange(newPages.join(''));
+
+      setPages(newPages);
+      internalContent.current = newPages.join('');
+      onContentChange(internalContent.current);
     }
   };
 
@@ -119,6 +134,8 @@ export default function PagedEditor({
   const handleOverflow = (text: string, pageIndex: number, cursorPosition: number) => {
     // Split the overflowing text into pages
     const splitResult = splitIntoPages(text);
+
+    console.log("This is the text that I need to split:", splitResult)
     
     // Get the content that fits on current page
     // const currentPageContent = splitResult[0];
@@ -142,7 +159,7 @@ export default function PagedEditor({
     
     // Update pages state
     setPages(newPages);
-    setTotalPages(newPages.length);
+    // setTotalPages(newPages.length);
     
     // Update parent component with new content
     onContentChange(newPages.join(''));
@@ -160,11 +177,11 @@ export default function PagedEditor({
     // Update pages when content changes from parent
     const newPages = splitIntoPages(content);
     setPages(newPages);
-    setTotalPages(newPages.length);
+    // setTotalPages(newPages.length);
 
     // Reset textarea refs array to match page count
     textareaRefs.current = textareaRefs.current.slice(0, newPages.length);
-  }, [content, splitIntoPages]);
+  }, [content, textareaRefs, splitIntoPages]);
 
   // Focus the appropriate textarea when focusedPageIndex changes
   useEffect(() => {
@@ -184,6 +201,8 @@ export default function PagedEditor({
   // Handle key events for navigation and special cases
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, pageIndex: number) => {
     const textarea = e.currentTarget;
+
+    console.log("this is important", textarea)
     
     // Navigate to previous page with up arrow at beginning of textarea
     if (e.key === 'ArrowUp' && textarea.selectionStart === 0 && pageIndex > 0) {
@@ -199,6 +218,38 @@ export default function PagedEditor({
       e.preventDefault();
       setFocusedPageIndex(pageIndex + 1);
       return;
+    }
+    
+    if (e.key === "Backspace" && textarea.value.length === 0) {
+      // If the current page is empty and the user presses backspace, remove that page and move the user to the previous page at the end  of the previous page
+      if (pageIndex > 0) {
+        e.preventDefault();
+        const newPages = [...pages];
+        newPages.splice(pageIndex, 1);
+        setPages(newPages);
+        // setTotalPages(newPages.length);
+        onContentChange(newPages.join(''));
+        
+        // Move focus to the previous page
+        setFocusedPageIndex(pageIndex - 1);
+        
+        // Set cursor position to the end of the previous page
+        const prevTextarea = textareaRefs.current[pageIndex - 1];
+        if (prevTextarea) {
+          prevTextarea.focus();
+          prevTextarea.selectionStart = prevTextarea.value.length;
+          prevTextarea.selectionEnd = prevTextarea.value.length;
+        }
+      }
+    }
+
+    if (e.key === "Delete" && textarea.value.length === 0) {
+      // If the current page is empty and the user presses delete, move to the next page
+      if (pageIndex < pages.length - 1) {
+        e.preventDefault();
+        setFocusedPageIndex(pageIndex + 1);
+        return;
+      }
     }
     
     // Special handling for Enter key
@@ -226,7 +277,7 @@ export default function PagedEditor({
           
           // Update pages
           setPages(newPages);
-          setTotalPages(newPages.length);
+          // setTotalPages(newPages.length);
           onContentChange(newPages.join(''));
           
           // Focus next page and position cursor at start
@@ -237,11 +288,17 @@ export default function PagedEditor({
     }
   };
 
+  useEffect(() => {
+    console.log("this is important", focusedPageIndex)
+  },[focusedPageIndex])
+
+  if (!isInitialized) return <div>Loading...</div>;
+
   return (
     <div className="w-full">
       {/* Page counter */}
       <div className="text-sm text-gray-500 my-4 text-center">
-        {totalPages} {totalPages === 1 ? 'page' : 'pages'}
+        {/* {totalPages} {totalPages === 1 ? 'page' : 'pages'} */}
       </div>
 
       {/* Multi-page editor with gap between pages */}
@@ -287,7 +344,7 @@ export default function PagedEditor({
         ref={contentMeasureRef}
         className="absolute opacity-0 pointer-events-none"
         style={{ 
-        //   width: `${PAGE_WIDTH - (PADDING * 2)}px`,
+          width: `${PAGE_WIDTH - (PADDING * 2)}px`,
           padding: '0',
           lineHeight: '1.5',
           fontSize: '16px',
