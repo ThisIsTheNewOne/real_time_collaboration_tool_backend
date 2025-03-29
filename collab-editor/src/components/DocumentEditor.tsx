@@ -120,8 +120,6 @@ export default function DocumentEditor({
   }, [accessLevel, documentId, token, visibility]);
 
   const handleContentChange = (newContent: string) => {
-    // setContent(newContent);
-
     if (socketRef.current) {
       socketRef.current.emit("text-change", { title, content: newContent });
     }
