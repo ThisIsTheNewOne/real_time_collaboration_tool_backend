@@ -122,6 +122,7 @@ export default function DocumentEditor({
   const handleContentChange = (newContent: string) => {
     setContent(newContent);
 
+
     if (socketRef.current) {
       socketRef.current.emit("text-change", { title, content: newContent });
     }
@@ -177,6 +178,8 @@ export default function DocumentEditor({
           onVisibilityChange={handleVisibilityChange}
         />
         
+        
+
         <PagedEditor
           content={content}
           onContentChange={handleContentChange}
@@ -186,11 +189,6 @@ export default function DocumentEditor({
             : "You don't have permission to edit this document."}
         />
 
-        {!canEdit && (
-          <div className="bg-yellow-50 p-2 text-center text-yellow-800 border-t border-yellow-100">
-            You have view-only access to this document
-          </div>
-        )}
 
         {accessLevel === "owner" && (
           <PermissionsTable

@@ -241,7 +241,7 @@ export default function PagedEditor({
         {pages.map((pageContent, index) => (
           <div 
             key={index}
-            className="bg-white border shadow-md relative"
+            className="w-full h-full resize-none focus:outline-none border-0 overflow-hidden dark:bg-gray-900 dark:text-gray-100"
             style={{ 
               width: `${PAGE_WIDTH}px`, 
               height: `${PAGE_HEIGHT + (PADDING * 2)}px`,
