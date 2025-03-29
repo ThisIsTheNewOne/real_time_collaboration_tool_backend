@@ -24,6 +24,9 @@ export default function PagedEditor({
   const [focusedPageIndex, setFocusedPageIndex] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  const [nextCursorPosition, setNextCursorPosition] = useState<number | null>(null);
+
+
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const contentMeasureRef = useRef<HTMLDivElement>(null);
   const internalContent = useRef(content);
@@ -175,6 +178,8 @@ export default function PagedEditor({
 
     // Move focus to next page if cursor was in overflow section
     if (cursorPosition > currentPageContent.length) {
+      const newPageCursorPosition = cursorPosition - currentPageContent.length;
+      setNextCursorPosition(newPageCursorPosition);
       setFocusedPageIndex(pageIndex + 1);
     }
   };
@@ -202,9 +207,16 @@ export default function PagedEditor({
       if (textarea) {
         textarea.focus();
         if (focusedPageIndex > 0) {
-          // Position cursor at the beginning of a new page
-          textarea.selectionStart = 0;
-          textarea.selectionEnd = 0;
+          // Set cursor position based on whether we have a next position from overflow
+          if (nextCursorPosition !== null) {
+            // Use the calculated position after overflow
+            textarea.selectionStart = nextCursorPosition;
+            textarea.selectionEnd = nextCursorPosition;
+            // Reset for next time
+            setNextCursorPosition(null);
+          } else if (focusedPageIndex > 0) {
+            // Default behavior for other focus changes
+          }
         }
       }
     }
@@ -320,7 +332,7 @@ export default function PagedEditor({
       </div> */}
 
       {/* Multi-page editor with gap between pages */}
-      <div className="space-y-8 mb-8 flex flex-col items-center">
+      <div className="mb-8 flex flex-col items-center">
         {pages.map((pageContent, index) => (
           <div key={index} className="flex flex-col items-center">
             <div
@@ -365,9 +377,13 @@ export default function PagedEditor({
             {/* Page break indicator - now between pages */}
             {index < pages.length - 1 && (
               <div
-                className="w-full h-2 bg-gray-300 my-4 rounded"
+                className="flex items-center justify-center my-4"
                 style={{ width: `${PAGE_WIDTH}px` }}
-              ></div>
+              >
+                <div className="w-24 h-px bg-gray-600"></div>
+                <div className="mx-2 text-gray-600 text-xs">●</div>
+                <div className="w-24 h-px bg-gray-600"></div>
+              </div>
             )}
           </div>
         ))}
