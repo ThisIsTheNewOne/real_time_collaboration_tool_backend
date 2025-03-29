@@ -5,7 +5,26 @@ interface PagedEditorProps {
   onContentChange: (newContent: string) => void;
   canEdit: boolean;
   placeholder?: string;
+  initialSettings?: PageSettings;
 }
+
+// Define a settings interface
+interface PageSettings {
+  pageHeight: number;
+  pageWidth: number;
+  bufferHeight: number;
+  fontSize: number;
+  lineHeight: number;
+}
+
+// Default settings
+const DEFAULT_SETTINGS: PageSettings = {
+  pageHeight: 820,
+  pageWidth: 850,
+  bufferHeight: 30,
+  fontSize: 16,
+  lineHeight: 1.5
+};
 
 // Constants for page management
 const PAGE_HEIGHT = 820; // Reduced height to create a safety buffer
@@ -18,7 +37,12 @@ export default function PagedEditor({
   onContentChange,
   canEdit,
   placeholder = "Start writing...",
+  initialSettings
 }: PagedEditorProps) {
+  // Replace constants with state
+  const [settings, setSettings] = useState<PageSettings>(initialSettings || DEFAULT_SETTINGS);
+  const [showSettings, setShowSettings] = useState(false);
+
   const [pages, setPages] = useState<string[]>([""]);
   const [totalPages, setTotalPages] = useState(1);
   const [focusedPageIndex, setFocusedPageIndex] = useState(0);
@@ -31,6 +55,15 @@ export default function PagedEditor({
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const contentMeasureRef = useRef<HTMLDivElement>(null);
   const internalContent = useRef(content);
+
+  // Function to update a single setting
+  const updateSetting = (key: keyof PageSettings, value: number) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
 
   // Function to split content into pages with a safety buffer
   const splitIntoPages = useCallback((text: string) => {
@@ -50,7 +83,7 @@ export default function PagedEditor({
       console.log("this is importanttest", measureDiv.scrollHeight);
 
       // Using a reduced threshold to ensure we split before scrollbars appear
-      if (height <= PAGE_HEIGHT - BUFFER_HEIGHT) {
+      if (height <= settings.pageHeight - settings.bufferHeight) {
         // All remaining text fits on one page
         result.push(remainingText);
         break;
@@ -71,7 +104,7 @@ export default function PagedEditor({
           measureDiv.textContent = remainingText.substring(0, mid);
           const midHeight = measureDiv.scrollHeight;
 
-          if (midHeight <= PAGE_HEIGHT - BUFFER_HEIGHT) {
+          if (midHeight <= settings.pageHeight - settings.bufferHeight) {
             // This fits, try to include more
             bestSplitPoint = mid;
             low = mid + 1;
@@ -109,7 +142,7 @@ export default function PagedEditor({
     }
 
     return result.length === 0 ? [""] : result;
-  }, []);
+  }, [settings.pageHeight, settings.bufferHeight]);
 
   // Function to check if content is approaching overflow threshold
   const isApproachingOverflow = useCallback((text: string): boolean => {
@@ -117,8 +150,17 @@ export default function PagedEditor({
 
     contentMeasureRef.current.textContent = text;
     // Use a lower threshold to trigger page splits before scrollbars appear
-    return contentMeasureRef.current.scrollHeight > PAGE_HEIGHT - BUFFER_HEIGHT;
-  }, []);
+    return contentMeasureRef.current.scrollHeight > settings.pageHeight - settings.bufferHeight;
+  }, [settings.pageHeight, settings.bufferHeight]);
+
+    // Re-paginate when settings change
+    useEffect(() => {
+      if (isInitialized && contentMeasureRef.current) {
+        const newPages = splitIntoPages(internalContent.current);
+        setPages(newPages);
+        setTotalPages(newPages.length);
+      }
+    }, [settings, splitIntoPages, isInitialized]);
 
   // Initialize pages from content prop
   useEffect(() => {
@@ -357,10 +399,130 @@ export default function PagedEditor({
 
   return (
     <div className="w-full">
-      {/* Page counter */}
-      {/* <div className="text-sm text-gray-500 my-4 text-center">
-        {totalPages} {totalPages === 1 ? "page" : "pages"}
-      </div> */}
+      {/* Settings Panel */}
+      <div className="mb-4 flex justify-between items-center">
+        <button 
+          onClick={() => setShowSettings(!showSettings)}
+          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+        >
+          {showSettings ? "Hide Settings" : "Page Settings"}
+        </button>
+        
+        <div className="text-sm text-gray-500">
+          {totalPages} {totalPages === 1 ? "page" : "pages"}
+        </div>
+      </div>
+
+      {/* Collapsible settings panel */}
+      {showSettings && (
+        <div className="mb-6 p-4 bg-gray-100 rounded-md">
+          <h3 className="text-md font-semibold mb-3">Page Settings</h3>
+          
+          <div className="grid grid-cols-2 gap-4">
+            {/* Page Width */}
+            <div>
+              <label className="block text-sm mb-1">
+                Page Width: {settings.pageWidth}px
+              </label>
+              <input
+                type="range"
+                min="500"
+                max="1200"
+                step="10"
+                value={settings.pageWidth}
+                onChange={(e) => updateSetting('pageWidth', parseInt(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            
+            {/* Page Height */}
+            <div>
+              <label className="block text-sm mb-1">
+                Page Height: {settings.pageHeight}px
+              </label>
+              <input
+                type="range"
+                min="600"
+                max="1200"
+                step="10"
+                value={settings.pageHeight}
+                onChange={(e) => updateSetting('pageHeight', parseInt(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            
+            {/* Font Size */}
+            <div>
+              <label className="block text-sm mb-1">
+                Font Size: {settings.fontSize}px
+              </label>
+              <input
+                type="range"
+                min="12"
+                max="24"
+                step="1"
+                value={settings.fontSize}
+                onChange={(e) => updateSetting('fontSize', parseInt(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            
+            {/* Line Height */}
+            <div>
+              <label className="block text-sm mb-1">
+                Line Height: {settings.lineHeight}
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="2.5"
+                step="0.1"
+                value={settings.lineHeight}
+                onChange={(e) => updateSetting('lineHeight', parseFloat(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            
+            {/* Buffer Height */}
+            <div>
+              <label className="block text-sm mb-1">
+                Split Buffer: {settings.bufferHeight}px
+              </label>
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="5"
+                value={settings.bufferHeight}
+                onChange={(e) => updateSetting('bufferHeight', parseInt(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            
+            {/* Preset Buttons */}
+            <div className="col-span-2 flex gap-2 mt-2">
+              <button 
+                onClick={() => setSettings(DEFAULT_SETTINGS)}
+                className="px-3 py-1 bg-gray-300 rounded text-sm"
+              >
+                Default
+              </button>
+              <button 
+                onClick={() => setSettings({...DEFAULT_SETTINGS, pageWidth: 595, pageHeight: 842})}
+                className="px-3 py-1 bg-gray-300 rounded text-sm"
+              >
+                A4
+              </button>
+              <button 
+                onClick={() => setSettings({...DEFAULT_SETTINGS, pageWidth: 612, pageHeight: 792})}
+                className="px-3 py-1 bg-gray-300 rounded text-sm"
+              >
+                Letter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Multi-page editor with gap between pages */}
       <div className="mb-8 flex flex-col items-center">
@@ -369,9 +531,11 @@ export default function PagedEditor({
             <div
               className="w-full h-full resize-none focus:outline-none border-0 overflow-hidden dark:bg-gray-900 dark:text-gray-100 relative"
               style={{
-                width: `${PAGE_WIDTH}px`,
-                height: `${PAGE_HEIGHT + PADDING * 2}px`,
-                padding: `${PADDING}px`,
+                width: `${settings.pageWidth}px`,
+                height: `${settings.pageHeight}px`,
+                padding: `0px`,
+                // Add a faint border to visualize the page better
+                border: '1px solid rgba(0,0,0,0.1)',
               }}
             >
               {canEdit ? (
@@ -384,14 +548,20 @@ export default function PagedEditor({
                   onClick={() => setFocusedPageIndex(index)}
                   placeholder={index === 0 ? placeholder : ""}
                   style={{
-                    lineHeight: "1.5",
-                    fontSize: "16px",
-                    overflowY: "hidden", // Explicitly hide scrollbars
+                    lineHeight: settings.lineHeight.toString(),
+                    fontSize: `${settings.fontSize}px`,
+                    overflowY: "hidden",
                   }}
                 />
               ) : (
-                <div className="w-full h-full overflow-hidden">
-                  {pageContent.split("\n").map((line, i) => (
+                <div 
+                  className="w-full h-full overflow-hidden"
+                  style={{
+                    lineHeight: settings.lineHeight.toString(),
+                    fontSize: `${settings.fontSize}px`,
+                  }}
+                >
+                  {pageContent.split('\n').map((line, i) => (
                     <p key={i} className="mb-2">
                       {line || " "}
                     </p>
@@ -409,7 +579,7 @@ export default function PagedEditor({
             {index < pages.length - 1 && (
               <div
                 className="flex items-center justify-center my-4"
-                style={{ width: `${PAGE_WIDTH}px` }}
+                style={{ width: `${settings.pageWidth}px` }}
               >
                 <div className="w-24 h-px bg-gray-600"></div>
                 <div className="mx-2 text-gray-600 text-xs">●</div>
@@ -425,10 +595,10 @@ export default function PagedEditor({
         ref={contentMeasureRef}
         className="absolute opacity-0 pointer-events-none"
         style={{
-          width: `${PAGE_WIDTH - PADDING * 2}px`,
+          width: `${settings.pageWidth}px`,
           padding: "0",
-          lineHeight: "1.5",
-          fontSize: "16px",
+          lineHeight: settings.lineHeight.toString(),
+          fontSize: `${settings.fontSize}px`,
           whiteSpace: "pre-wrap",
         }}
       ></div>
