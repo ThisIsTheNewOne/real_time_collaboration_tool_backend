@@ -179,6 +179,7 @@ export default function DocumentEditor({
 
         <PagedEditor
           content={content}
+          title={title}
           onContentChange={handleContentChange}
           canEdit={canEdit}
           placeholder={canEdit 

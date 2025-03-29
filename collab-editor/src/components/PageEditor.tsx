@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import ExportPdfButton from "./ExportPdfButton";
+import PdfPreviewModal from "./PdfPreviewModal";
 
 interface PagedEditorProps {
   content: string;
@@ -6,10 +8,11 @@ interface PagedEditorProps {
   canEdit: boolean;
   placeholder?: string;
   initialSettings?: PageSettings;
+  title?: string;
 }
 
 // Define a settings interface
-interface PageSettings {
+export interface PageSettings {
   pageHeight: number;
   pageWidth: number;
   bufferHeight: number;
@@ -23,7 +26,7 @@ const DEFAULT_SETTINGS: PageSettings = {
   pageWidth: 850,
   bufferHeight: 30,
   fontSize: 16,
-  lineHeight: 1.5
+  lineHeight: 1.5,
 };
 
 // Constants for page management
@@ -37,11 +40,15 @@ export default function PagedEditor({
   onContentChange,
   canEdit,
   placeholder = "Start writing...",
-  initialSettings
+  initialSettings,
+  title,
 }: PagedEditorProps) {
   // Replace constants with state
-  const [settings, setSettings] = useState<PageSettings>(initialSettings || DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<PageSettings>(
+    initialSettings || DEFAULT_SETTINGS
+  );
   const [showSettings, setShowSettings] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const [pages, setPages] = useState<string[]>([""]);
   const [totalPages, setTotalPages] = useState(1);
@@ -58,109 +65,117 @@ export default function PagedEditor({
 
   // Function to update a single setting
   const updateSetting = (key: keyof PageSettings, value: number) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
-
   // Function to split content into pages with a safety buffer
-  const splitIntoPages = useCallback((text: string) => {
-    const measureDiv = contentMeasureRef.current;
-    if (!measureDiv) return [text];
+  const splitIntoPages = useCallback(
+    (text: string) => {
+      const measureDiv = contentMeasureRef.current;
+      if (!measureDiv) return [text];
 
-    let remainingText = text;
-    const result: string[] = [];
+      let remainingText = text;
+      const result: string[] = [];
 
-    console.log("this is importanttest", remainingText);
+      console.log("this is importanttest", remainingText);
 
-    while (remainingText.length > 0) {
-      // Test if current text fits in a page (with buffer)
-      measureDiv.textContent = remainingText;
-      const height = measureDiv.scrollHeight;
+      while (remainingText.length > 0) {
+        // Test if current text fits in a page (with buffer)
+        measureDiv.textContent = remainingText;
+        const height = measureDiv.scrollHeight;
 
-      console.log("this is importanttest", measureDiv.scrollHeight);
+        console.log("this is importanttest", measureDiv.scrollHeight);
 
-      // Using a reduced threshold to ensure we split before scrollbars appear
-      if (height <= settings.pageHeight - settings.bufferHeight) {
-        // All remaining text fits on one page
-        result.push(remainingText);
-        break;
-      } else {
-        // More precise split point calculation
-        // Start with a binary search approach to find the optimal split point
-        let low = 0;
-        let high = remainingText.length;
-        let bestSplitPoint = 0;
-        let iterations = 0;
-        const maxIterations = 20; // Prevent infinite loops
-
-        while (low <= high && iterations < maxIterations) {
-          iterations++;
-          const mid = Math.floor((low + high) / 2);
-
-          // Check if this much text fits
-          measureDiv.textContent = remainingText.substring(0, mid);
-          const midHeight = measureDiv.scrollHeight;
-
-          if (midHeight <= settings.pageHeight - settings.bufferHeight) {
-            // This fits, try to include more
-            bestSplitPoint = mid;
-            low = mid + 1;
-          } else {
-            // Too much text, try less
-            high = mid - 1;
-          }
-        }
-
-        // Once we have a good approximate split point, find a clean break
-        let splitPoint = bestSplitPoint;
-
-        // Find the nearest line break for cleaner splits
-        const nearestBreak = remainingText.lastIndexOf("\n", splitPoint);
-        if (nearestBreak > 0 && nearestBreak > splitPoint - 200) {
-          // Only use line break if it's reasonably close to optimal split
-          splitPoint = nearestBreak + 1;
+        // Using a reduced threshold to ensure we split before scrollbars appear
+        if (height <= settings.pageHeight - settings.bufferHeight) {
+          // All remaining text fits on one page
+          result.push(remainingText);
+          break;
         } else {
-          // If no good line break, find a space
-          const nearestSpace = remainingText.lastIndexOf(" ", splitPoint);
-          if (nearestSpace > 0 && nearestSpace > splitPoint - 50) {
-            splitPoint = nearestSpace + 1;
+          // More precise split point calculation
+          // Start with a binary search approach to find the optimal split point
+          let low = 0;
+          let high = remainingText.length;
+          let bestSplitPoint = 0;
+          let iterations = 0;
+          const maxIterations = 20; // Prevent infinite loops
+
+          while (low <= high && iterations < maxIterations) {
+            iterations++;
+            const mid = Math.floor((low + high) / 2);
+
+            // Check if this much text fits
+            measureDiv.textContent = remainingText.substring(0, mid);
+            const midHeight = measureDiv.scrollHeight;
+
+            if (midHeight <= settings.pageHeight - settings.bufferHeight) {
+              // This fits, try to include more
+              bestSplitPoint = mid;
+              low = mid + 1;
+            } else {
+              // Too much text, try less
+              high = mid - 1;
+            }
           }
-        }
 
-        // Ensure we're making progress
-        if (splitPoint <= 0) {
-          splitPoint = Math.max(1, bestSplitPoint);
-        }
+          // Once we have a good approximate split point, find a clean break
+          let splitPoint = bestSplitPoint;
 
-        // Add this page and continue with remaining text
-        result.push(remainingText.substring(0, splitPoint));
-        remainingText = remainingText.substring(splitPoint);
+          // Find the nearest line break for cleaner splits
+          const nearestBreak = remainingText.lastIndexOf("\n", splitPoint);
+          if (nearestBreak > 0 && nearestBreak > splitPoint - 200) {
+            // Only use line break if it's reasonably close to optimal split
+            splitPoint = nearestBreak + 1;
+          } else {
+            // If no good line break, find a space
+            const nearestSpace = remainingText.lastIndexOf(" ", splitPoint);
+            if (nearestSpace > 0 && nearestSpace > splitPoint - 50) {
+              splitPoint = nearestSpace + 1;
+            }
+          }
+
+          // Ensure we're making progress
+          if (splitPoint <= 0) {
+            splitPoint = Math.max(1, bestSplitPoint);
+          }
+
+          // Add this page and continue with remaining text
+          result.push(remainingText.substring(0, splitPoint));
+          remainingText = remainingText.substring(splitPoint);
+        }
       }
-    }
 
-    return result.length === 0 ? [""] : result;
-  }, [settings.pageHeight, settings.bufferHeight]);
+      return result.length === 0 ? [""] : result;
+    },
+    [settings.pageHeight, settings.bufferHeight]
+  );
 
   // Function to check if content is approaching overflow threshold
-  const isApproachingOverflow = useCallback((text: string): boolean => {
-    if (!contentMeasureRef.current) return false;
+  const isApproachingOverflow = useCallback(
+    (text: string): boolean => {
+      if (!contentMeasureRef.current) return false;
 
-    contentMeasureRef.current.textContent = text;
-    // Use a lower threshold to trigger page splits before scrollbars appear
-    return contentMeasureRef.current.scrollHeight > settings.pageHeight - settings.bufferHeight;
-  }, [settings.pageHeight, settings.bufferHeight]);
+      contentMeasureRef.current.textContent = text;
+      // Use a lower threshold to trigger page splits before scrollbars appear
+      return (
+        contentMeasureRef.current.scrollHeight >
+        settings.pageHeight - settings.bufferHeight
+      );
+    },
+    [settings.pageHeight, settings.bufferHeight]
+  );
 
-    // Re-paginate when settings change
-    useEffect(() => {
-      if (isInitialized && contentMeasureRef.current) {
-        const newPages = splitIntoPages(internalContent.current);
-        setPages(newPages);
-        setTotalPages(newPages.length);
-      }
-    }, [settings, splitIntoPages, isInitialized]);
+  // Re-paginate when settings change
+  useEffect(() => {
+    if (isInitialized && contentMeasureRef.current) {
+      const newPages = splitIntoPages(internalContent.current);
+      setPages(newPages);
+      setTotalPages(newPages.length);
+    }
+  }, [settings, splitIntoPages, isInitialized]);
 
   // Initialize pages from content prop
   useEffect(() => {
@@ -401,23 +416,22 @@ export default function PagedEditor({
     <div className="w-full">
       {/* Settings Panel */}
       <div className="mb-4 flex justify-between items-center">
-        <button 
+        <button
           onClick={() => setShowSettings(!showSettings)}
           className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
         >
           {showSettings ? "Hide Settings" : "Page Settings"}
         </button>
-        
+
         <div className="text-sm text-gray-500">
           {totalPages} {totalPages === 1 ? "page" : "pages"}
         </div>
       </div>
-
       {/* Collapsible settings panel */}
       {showSettings && (
         <div className="mb-6 p-4 bg-gray-100 rounded-md">
           <h3 className="text-md font-semibold mb-3">Page Settings</h3>
-          
+
           <div className="grid grid-cols-2 gap-4">
             {/* Page Width */}
             <div>
@@ -430,11 +444,13 @@ export default function PagedEditor({
                 max="1200"
                 step="10"
                 value={settings.pageWidth}
-                onChange={(e) => updateSetting('pageWidth', parseInt(e.target.value))}
+                onChange={(e) =>
+                  updateSetting("pageWidth", parseInt(e.target.value))
+                }
                 className="w-full"
               />
             </div>
-            
+
             {/* Page Height */}
             <div>
               <label className="block text-sm mb-1">
@@ -446,11 +462,13 @@ export default function PagedEditor({
                 max="1200"
                 step="10"
                 value={settings.pageHeight}
-                onChange={(e) => updateSetting('pageHeight', parseInt(e.target.value))}
+                onChange={(e) =>
+                  updateSetting("pageHeight", parseInt(e.target.value))
+                }
                 className="w-full"
               />
             </div>
-            
+
             {/* Font Size */}
             <div>
               <label className="block text-sm mb-1">
@@ -462,11 +480,13 @@ export default function PagedEditor({
                 max="24"
                 step="1"
                 value={settings.fontSize}
-                onChange={(e) => updateSetting('fontSize', parseInt(e.target.value))}
+                onChange={(e) =>
+                  updateSetting("fontSize", parseInt(e.target.value))
+                }
                 className="w-full"
               />
             </div>
-            
+
             {/* Line Height */}
             <div>
               <label className="block text-sm mb-1">
@@ -478,11 +498,13 @@ export default function PagedEditor({
                 max="2.5"
                 step="0.1"
                 value={settings.lineHeight}
-                onChange={(e) => updateSetting('lineHeight', parseFloat(e.target.value))}
+                onChange={(e) =>
+                  updateSetting("lineHeight", parseFloat(e.target.value))
+                }
                 className="w-full"
               />
             </div>
-            
+
             {/* Buffer Height */}
             <div>
               <label className="block text-sm mb-1">
@@ -494,27 +516,41 @@ export default function PagedEditor({
                 max="100"
                 step="5"
                 value={settings.bufferHeight}
-                onChange={(e) => updateSetting('bufferHeight', parseInt(e.target.value))}
+                onChange={(e) =>
+                  updateSetting("bufferHeight", parseInt(e.target.value))
+                }
                 className="w-full"
               />
             </div>
-            
+
             {/* Preset Buttons */}
             <div className="col-span-2 flex gap-2 mt-2">
-              <button 
+              <button
                 onClick={() => setSettings(DEFAULT_SETTINGS)}
                 className="px-3 py-1 bg-gray-300 rounded text-sm"
               >
                 Default
               </button>
-              <button 
-                onClick={() => setSettings({...DEFAULT_SETTINGS, pageWidth: 595, pageHeight: 842})}
+              <button
+                onClick={() =>
+                  setSettings({
+                    ...DEFAULT_SETTINGS,
+                    pageWidth: 595,
+                    pageHeight: 842,
+                  })
+                }
                 className="px-3 py-1 bg-gray-300 rounded text-sm"
               >
                 A4
               </button>
-              <button 
-                onClick={() => setSettings({...DEFAULT_SETTINGS, pageWidth: 612, pageHeight: 792})}
+              <button
+                onClick={() =>
+                  setSettings({
+                    ...DEFAULT_SETTINGS,
+                    pageWidth: 612,
+                    pageHeight: 792,
+                  })
+                }
                 className="px-3 py-1 bg-gray-300 rounded text-sm"
               >
                 Letter
@@ -523,7 +559,29 @@ export default function PagedEditor({
           </div>
         </div>
       )}
+      // Then in the JSX part where you render the ExportPdfButton, add:
+      <div className="flex space-x-2">
+        <button
+          onClick={() => setShowPreview(true)}
+          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          Preview PDF
+        </button>
 
+        <ExportPdfButton
+          content={pages.join("\f")}
+          title={title}
+          settings={settings}
+        />
+      </div>
+      {/* Add this at the end of your return, just before the final closing div */}
+      <PdfPreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        content={pages.join("\f")}
+        settings={settings}
+        title={title}
+      />
       {/* Multi-page editor with gap between pages */}
       <div className="mb-8 flex flex-col items-center">
         {pages.map((pageContent, index) => (
@@ -535,7 +593,7 @@ export default function PagedEditor({
                 height: `${settings.pageHeight}px`,
                 padding: `0px`,
                 // Add a faint border to visualize the page better
-                border: '1px solid rgba(0,0,0,0.1)',
+                border: "1px solid rgba(0,0,0,0.1)",
               }}
             >
               {canEdit ? (
@@ -554,14 +612,14 @@ export default function PagedEditor({
                   }}
                 />
               ) : (
-                <div 
+                <div
                   className="w-full h-full overflow-hidden"
                   style={{
                     lineHeight: settings.lineHeight.toString(),
                     fontSize: `${settings.fontSize}px`,
                   }}
                 >
-                  {pageContent.split('\n').map((line, i) => (
+                  {pageContent.split("\n").map((line, i) => (
                     <p key={i} className="mb-2">
                       {line || " "}
                     </p>
@@ -589,7 +647,6 @@ export default function PagedEditor({
           </div>
         ))}
       </div>
-
       {/* Hidden div to measure content */}
       <div
         ref={contentMeasureRef}
