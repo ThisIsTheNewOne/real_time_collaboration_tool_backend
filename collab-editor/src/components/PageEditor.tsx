@@ -415,14 +415,28 @@ export default function PagedEditor({
   return (
     <div className="w-full">
       {/* Settings Panel */}
-      <div className="mb-4 flex justify-between items-center">
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
-        >
-          {showSettings ? "Hide Settings" : "Page Settings"}
-        </button>
+      <div className="mb-4 mt-4 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+          >
+            {showSettings ? "Hide Settings" : "Page Settings"}
+          </button>
 
+          <button
+            onClick={() => setShowPreview(true)}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+          >
+            Preview PDF
+          </button>
+
+          <ExportPdfButton
+            content={pages.join("\f")}
+            title={title}
+            settings={settings}
+          />
+        </div>
         <div className="text-sm text-gray-500">
           {totalPages} {totalPages === 1 ? "page" : "pages"}
         </div>
@@ -559,23 +573,6 @@ export default function PagedEditor({
           </div>
         </div>
       )}
-
-
-      <div className="flex space-x-2">
-        <button
-          onClick={() => setShowPreview(true)}
-          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-        >
-          Preview PDF
-        </button>
-
-        <ExportPdfButton
-          content={pages.join("\f")}
-          title={title}
-          settings={settings}
-        />
-      </div>
-      {/* Add this at the end of your return, just before the final closing div */}
       <PdfPreviewModal
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
