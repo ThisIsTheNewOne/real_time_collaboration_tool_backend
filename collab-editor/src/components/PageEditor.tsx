@@ -24,8 +24,9 @@ export default function PagedEditor({
   const [focusedPageIndex, setFocusedPageIndex] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const [nextCursorPosition, setNextCursorPosition] = useState<number | null>(null);
-
+  const [nextCursorPosition, setNextCursorPosition] = useState<number | null>(
+    null
+  );
 
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const contentMeasureRef = useRef<HTMLDivElement>(null);
@@ -54,21 +55,51 @@ export default function PagedEditor({
         result.push(remainingText);
         break;
       } else {
-        // Need to find a good split point
-        // We're using a more aggressive approach to ensure early splitting
-        const ratio = (PAGE_HEIGHT - BUFFER_HEIGHT) / height;
-        let splitPoint = Math.floor(remainingText.length * ratio);
+        // More precise split point calculation
+        // Start with a binary search approach to find the optimal split point
+        let low = 0;
+        let high = remainingText.length;
+        let bestSplitPoint = 0;
+        let iterations = 0;
+        const maxIterations = 20; // Prevent infinite loops
 
-        // Find the nearest paragraph or line break
+        while (low <= high && iterations < maxIterations) {
+          iterations++;
+          const mid = Math.floor((low + high) / 2);
+
+          // Check if this much text fits
+          measureDiv.textContent = remainingText.substring(0, mid);
+          const midHeight = measureDiv.scrollHeight;
+
+          if (midHeight <= PAGE_HEIGHT - BUFFER_HEIGHT) {
+            // This fits, try to include more
+            bestSplitPoint = mid;
+            low = mid + 1;
+          } else {
+            // Too much text, try less
+            high = mid - 1;
+          }
+        }
+
+        // Once we have a good approximate split point, find a clean break
+        let splitPoint = bestSplitPoint;
+
+        // Find the nearest line break for cleaner splits
         const nearestBreak = remainingText.lastIndexOf("\n", splitPoint);
-        if (nearestBreak > 0 && nearestBreak > splitPoint - 500) {
+        if (nearestBreak > 0 && nearestBreak > splitPoint - 200) {
+          // Only use line break if it's reasonably close to optimal split
           splitPoint = nearestBreak + 1;
         } else {
-          // If no good break point, find a space
+          // If no good line break, find a space
           const nearestSpace = remainingText.lastIndexOf(" ", splitPoint);
-          if (nearestSpace > 0 && nearestSpace > splitPoint - 100) {
+          if (nearestSpace > 0 && nearestSpace > splitPoint - 50) {
             splitPoint = nearestSpace + 1;
           }
+        }
+
+        // Ensure we're making progress
+        if (splitPoint <= 0) {
+          splitPoint = Math.max(1, bestSplitPoint);
         }
 
         // Add this page and continue with remaining text
