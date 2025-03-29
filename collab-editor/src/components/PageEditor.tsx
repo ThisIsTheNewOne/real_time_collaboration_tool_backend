@@ -85,24 +85,14 @@ export default function PagedEditor({
     return contentMeasureRef.current.scrollHeight > (PAGE_HEIGHT - BUFFER_HEIGHT);
   }, []);
 
-  // Split content into pages when content prop changes
-  useEffect(() => {
-    if (!contentMeasureRef.current) return;
-    
-    // Update pages when content changes from parent
-    const newPages = splitIntoPages(content);
-    setPages(newPages);
-    setTotalPages(newPages.length);
-
-    // Reset textarea refs array to match page count
-    textareaRefs.current = textareaRefs.current.slice(0, newPages.length);
-  }, [content, splitIntoPages]);
 
   // Handle textarea changes with continuous checking
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>, pageIndex: number) => {
     if (!canEdit) return;
     
     const newText = e.target.value;
+
+    console.log("This is the text that I need to split:", newText, isApproachingOverflow(newText))
     
     // Check if we're approaching the height limit
     if (isApproachingOverflow(newText)) {
@@ -112,11 +102,15 @@ export default function PagedEditor({
       // No overflow - update normally
       const newPages = [...pages];
       newPages[pageIndex] = newText;
-      
+
+      console.log("This is the text that I need to split:", newPages)
+  
+  
       // Update the pages state
       setPages(newPages);
       
       // Notify parent of content change
+      console.log("This is the text that I need to split:", newPages.join(''))
       onContentChange(newPages.join(''));
     }
   };
@@ -127,6 +121,7 @@ export default function PagedEditor({
     const splitResult = splitIntoPages(text);
     
     // Get the content that fits on current page
+    // const currentPageContent = splitResult[0];
     const currentPageContent = splitResult[0];
     
     // Get the overflow content
@@ -157,6 +152,34 @@ export default function PagedEditor({
       setFocusedPageIndex(pageIndex + 1);
     }
   };
+
+   // Split content into pages when content prop changes
+   useEffect(() => {
+    if (!contentMeasureRef.current) return;
+    
+    // Update pages when content changes from parent
+    const newPages = splitIntoPages(content);
+    setPages(newPages);
+    setTotalPages(newPages.length);
+
+    // Reset textarea refs array to match page count
+    textareaRefs.current = textareaRefs.current.slice(0, newPages.length);
+  }, [content, splitIntoPages]);
+
+  // Focus the appropriate textarea when focusedPageIndex changes
+  useEffect(() => {
+    if (focusedPageIndex >= 0 && focusedPageIndex < textareaRefs.current.length) {
+      const textarea = textareaRefs.current[focusedPageIndex];
+      if (textarea) {
+        textarea.focus();
+        if (focusedPageIndex > 0) {
+          // Position cursor at the beginning of a new page
+          textarea.selectionStart = 0;
+          textarea.selectionEnd = 0;
+        }
+      }
+    }
+  }, [focusedPageIndex, pages.length]);
 
   // Handle key events for navigation and special cases
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, pageIndex: number) => {
@@ -214,21 +237,6 @@ export default function PagedEditor({
     }
   };
 
-  // Focus the appropriate textarea when focusedPageIndex changes
-  useEffect(() => {
-    if (focusedPageIndex >= 0 && focusedPageIndex < textareaRefs.current.length) {
-      const textarea = textareaRefs.current[focusedPageIndex];
-      if (textarea) {
-        textarea.focus();
-        if (focusedPageIndex > 0) {
-          // Position cursor at the beginning of a new page
-          textarea.selectionStart = 0;
-          textarea.selectionEnd = 0;
-        }
-      }
-    }
-  }, [focusedPageIndex, pages.length]);
-
   return (
     <div className="w-full">
       {/* Page counter */}
@@ -250,7 +258,7 @@ export default function PagedEditor({
           >
             {canEdit ? (
               <textarea
-                ref={el => textareaRefs.current[index] = el}
+                ref={(el: any) => textareaRefs.current[index] = el}
                 className="w-full h-full resize-none focus:outline-none border-0 overflow-hidden"
                 value={pageContent}
                 onChange={(e) => handleTextareaChange(e, index)}

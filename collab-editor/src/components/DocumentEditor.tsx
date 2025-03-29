@@ -120,7 +120,9 @@ export default function DocumentEditor({
   }, [accessLevel, documentId, token, visibility]);
 
   const handleContentChange = (newContent: string) => {
-    setContent(newContent);
+    // setContent(newContent);
+
+    console.log("This is the text that I need to split:", newContent)
 
 
     if (socketRef.current) {
