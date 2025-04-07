@@ -175,8 +175,6 @@ export default function DocumentEditor({
           onVisibilityChange={handleVisibilityChange}
         />
         
-        
-
         <PagedEditor
           content={content}
           title={title}
@@ -186,7 +184,6 @@ export default function DocumentEditor({
             ? "Start writing..." 
             : "You don't have permission to edit this document."}
         />
-
 
         {accessLevel === "owner" && (
           <PermissionsTable

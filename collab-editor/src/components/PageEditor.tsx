@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import ExportPdfButton from "./ExportPdfButton";
 import PdfPreviewModal from "./PdfPreviewModal";
+import { useTextPagination } from "@/hooks/useTextPagination";
 
 interface PagedEditorProps {
   content: string;
@@ -60,8 +61,16 @@ export default function PagedEditor({
   );
 
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+
   const contentMeasureRef = useRef<HTMLDivElement>(null);
   const internalContent = useRef(content);
+
+    // Use the extracted pagination hook
+    const { splitIntoPages, isApproachingOverflow } = useTextPagination({
+      contentMeasureRef,
+      settings
+    });
+  
 
   // Function to update a single setting
   const updateSetting = (key: keyof PageSettings, value: number) => {
@@ -71,102 +80,7 @@ export default function PagedEditor({
     }));
   };
 
-  // Function to split content into pages with a safety buffer
-  const splitIntoPages = useCallback(
-    (text: string) => {
-      const measureDiv = contentMeasureRef.current;
-      if (!measureDiv) return [text];
 
-      let remainingText = text;
-      const result: string[] = [];
-
-      console.log("this is importanttest", remainingText);
-
-      while (remainingText.length > 0) {
-        // Test if current text fits in a page (with buffer)
-        measureDiv.textContent = remainingText;
-        const height = measureDiv.scrollHeight;
-
-        console.log("this is importanttest", measureDiv.scrollHeight);
-
-        // Using a reduced threshold to ensure we split before scrollbars appear
-        if (height <= settings.pageHeight - settings.bufferHeight) {
-          // All remaining text fits on one page
-          result.push(remainingText);
-          break;
-        } else {
-          // More precise split point calculation
-          // Start with a binary search approach to find the optimal split point
-          let low = 0;
-          let high = remainingText.length;
-          let bestSplitPoint = 0;
-          let iterations = 0;
-          const maxIterations = 20; // Prevent infinite loops
-
-          while (low <= high && iterations < maxIterations) {
-            iterations++;
-            const mid = Math.floor((low + high) / 2);
-
-            // Check if this much text fits
-            measureDiv.textContent = remainingText.substring(0, mid);
-            const midHeight = measureDiv.scrollHeight;
-
-            if (midHeight <= settings.pageHeight - settings.bufferHeight) {
-              // This fits, try to include more
-              bestSplitPoint = mid;
-              low = mid + 1;
-            } else {
-              // Too much text, try less
-              high = mid - 1;
-            }
-          }
-
-          // Once we have a good approximate split point, find a clean break
-          let splitPoint = bestSplitPoint;
-
-          // Find the nearest line break for cleaner splits
-          const nearestBreak = remainingText.lastIndexOf("\n", splitPoint);
-          if (nearestBreak > 0 && nearestBreak > splitPoint - 200) {
-            // Only use line break if it's reasonably close to optimal split
-            splitPoint = nearestBreak + 1;
-          } else {
-            // If no good line break, find a space
-            const nearestSpace = remainingText.lastIndexOf(" ", splitPoint);
-            if (nearestSpace > 0 && nearestSpace > splitPoint - 50) {
-              splitPoint = nearestSpace + 1;
-            }
-          }
-
-          // Ensure we're making progress
-          if (splitPoint <= 0) {
-            splitPoint = Math.max(1, bestSplitPoint);
-          }
-
-          // Add this page and continue with remaining text
-          result.push(remainingText.substring(0, splitPoint));
-          remainingText = remainingText.substring(splitPoint);
-        }
-      }
-
-      return result.length === 0 ? [""] : result;
-    },
-    [settings.pageHeight, settings.bufferHeight]
-  );
-
-  // Function to check if content is approaching overflow threshold
-  const isApproachingOverflow = useCallback(
-    (text: string): boolean => {
-      if (!contentMeasureRef.current) return false;
-
-      contentMeasureRef.current.textContent = text;
-      // Use a lower threshold to trigger page splits before scrollbars appear
-      return (
-        contentMeasureRef.current.scrollHeight >
-        settings.pageHeight - settings.bufferHeight
-      );
-    },
-    [settings.pageHeight, settings.bufferHeight]
-  );
 
   // Re-paginate when settings change
   useEffect(() => {
@@ -207,19 +121,6 @@ export default function PagedEditor({
       // Content overflows - need to split it
       handleOverflow(newText, pageIndex, e.target.selectionStart);
     } else {
-      // // No overflow - update normally
-      // const newPages = [...pages];
-      // newPages[pageIndex] = newText;
-
-      // console.log("This is the text that I need to split:", newPages)
-
-      // // Update the pages state
-      // setPages(newPages);
-
-      // // Notify parent of content change
-      // console.log("This is the text that I need to split:", newPages.join(''))
-      // onContentChange(newPages.join(''));
-
       setPages(newPages);
       internalContent.current = newPages.join("");
       onContentChange(internalContent.current);
@@ -292,7 +193,7 @@ export default function PagedEditor({
       focusedPageIndex < textareaRefs.current.length
     ) {
       const textarea = textareaRefs.current[focusedPageIndex];
-      if (textarea) {
+      if (textarea !== null) {
         textarea.focus();
         if (focusedPageIndex > 0) {
           // Set cursor position based on whether we have a next position from overflow
@@ -352,7 +253,7 @@ export default function PagedEditor({
 
         // Set cursor position to the end of the previous page
         const prevTextarea = textareaRefs.current[pageIndex - 1];
-        if (prevTextarea) {
+        if (prevTextarea !== null) {
           prevTextarea.focus();
           prevTextarea.selectionStart = prevTextarea.value.length;
           prevTextarea.selectionEnd = prevTextarea.value.length;
