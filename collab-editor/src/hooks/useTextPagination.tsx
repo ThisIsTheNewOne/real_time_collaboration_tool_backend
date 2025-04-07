@@ -20,12 +20,15 @@ export const useTextPagination = ({ contentMeasureRef, settings }: TextPaginatio
       if (!measureDiv) return [text];
 
       let remainingText = text;
+
       const result: string[] = [];
 
       while (remainingText.length > 0) {
         // Test if current text fits in a page (with buffer)
         measureDiv.textContent = remainingText;
+
         const height = measureDiv.scrollHeight;
+
 
         // Using a reduced threshold to ensure we split before scrollbars appear
         if (height <= settings.pageHeight - settings.bufferHeight) {
@@ -71,8 +74,38 @@ export const useTextPagination = ({ contentMeasureRef, settings }: TextPaginatio
             // If no good line break, find a space
             const nearestSpace = remainingText.lastIndexOf(" ", splitPoint);
             if (nearestSpace > 0 && nearestSpace > splitPoint - 50) {
-              splitPoint = nearestSpace + 1;
-            }
+                splitPoint = nearestSpace + 1;
+              } else {
+                // Special handling for very long words with no breaks
+                console.log("Splitting a long word with no natural breaks");
+                
+                // Check if we're genuinely in a long continuous string
+                const nextSpace = remainingText.indexOf(" ", splitPoint);
+                const nextBreak = remainingText.indexOf("\n", splitPoint);
+                const hasNoBreaksSoon = (nextSpace === -1 || nextSpace > splitPoint + 20) && 
+                                       (nextBreak === -1 || nextBreak > splitPoint + 20);
+                
+                if (hasNoBreaksSoon) {
+                  // We're in the middle of a very long string with no nearby breaks
+                  
+                  // Find a good position to split (5-10 chars before the limit for hyphen)
+                  const hyphenOffset = Math.min(10, Math.floor(splitPoint * 0.05));
+                  const hyphenPosition = Math.max(1, splitPoint - hyphenOffset);
+                  
+                  // Insert hyphen as a visual indicator of word split
+                  const firstPart = remainingText.substring(0, hyphenPosition) + "‐"; // Using unicode hyphen
+                  
+                  // Update the result and remaining text with our hyphenated split
+                  result.push(firstPart);
+                  remainingText = remainingText.substring(hyphenPosition);
+                  
+                  // Continue to next iteration with our modified remainingText
+                  continue;
+                }
+                
+                // Otherwise, use the binary search point as fallback
+                // This handles mixed text that doesn't qualify as a "long continuous string"
+              }
           }
 
           // Ensure we're making progress
