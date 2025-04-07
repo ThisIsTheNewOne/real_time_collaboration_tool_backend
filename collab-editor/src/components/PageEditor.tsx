@@ -407,8 +407,10 @@ export default function PagedEditor({
   };
 
   useEffect(() => {
-    console.log("this is important", focusedPageIndex);
-  }, [focusedPageIndex]);
+    console.log("this is important", settings);
+  }, [settings]);
+
+
 
   if (!isInitialized) return <div>Loading...</div>;
 

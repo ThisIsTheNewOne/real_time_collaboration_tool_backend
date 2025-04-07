@@ -45,9 +45,11 @@ router.post("/:id/permissions", authMiddleware, async (req, res) => {
   const { userEmail, permissionLevel } = req.body;
   const userId = req.user!.id;
 
-  if (!['view', 'edit'].includes(permissionLevel)) {
-     res.status(400).json({ error: "Permission level must be 'view' or 'edit'" });
-     return
+  if (!["view", "edit"].includes(permissionLevel)) {
+    res
+      .status(400)
+      .json({ error: "Permission level must be 'view' or 'edit'" });
+    return;
   }
 
   try {
@@ -58,13 +60,13 @@ router.post("/:id/permissions", authMiddleware, async (req, res) => {
     );
 
     if (docResult.rowCount === 0) {
-       res.status(404).json({ error: "Document not found" });
-       return
+      res.status(404).json({ error: "Document not found" });
+      return;
     }
 
     if (docResult.rows[0].owner_id !== userId) {
-       res.status(403).json({ error: "Only the owner can manage permissions" });
-       return
+      res.status(403).json({ error: "Only the owner can manage permissions" });
+      return;
     }
 
     // Find the target user by email
@@ -74,29 +76,34 @@ router.post("/:id/permissions", authMiddleware, async (req, res) => {
     );
 
     if (userResult.rowCount === 0) {
-       res.status(404).json({ error: "User not found" });
-       return
+      res.status(404).json({ error: "User not found" });
+      return;
     }
 
     const targetUserId = userResult.rows[0].id;
 
     // Don't allow setting permissions for the owner
     if (targetUserId === docResult.rows[0].owner_id) {
-       res.status(400).json({ error: "Cannot set permissions for document owner" });
-       return
+      res
+        .status(400)
+        .json({ error: "Cannot set permissions for document owner" });
+      return;
     }
 
     // Add or update permission
-    await pgPool.query(`
+    await pgPool.query(
+      `
       INSERT INTO document_permissions (document_id, user_id, permission_level)
       VALUES ($1, $2, $3)
       ON CONFLICT (document_id, user_id) 
       DO UPDATE SET permission_level = $3
-    `, [id, targetUserId, permissionLevel]);
+    `,
+      [id, targetUserId, permissionLevel]
+    );
 
-    res.status(200).json({ 
-      success: true, 
-      message: `Permission ${permissionLevel} granted to ${userEmail}`
+    res.status(200).json({
+      success: true,
+      message: `Permission ${permissionLevel} granted to ${userEmail}`,
     });
   } catch (err) {
     console.error("Error adding permission:", err);
@@ -117,23 +124,26 @@ router.get("/:id/permissions", authMiddleware, async (req, res) => {
     );
 
     if (docResult.rowCount === 0) {
-       res.status(404).json({ error: "Document not found" });
-       return
+      res.status(404).json({ error: "Document not found" });
+      return;
     }
 
     if (docResult.rows[0].owner_id !== userId) {
-       res.status(403).json({ error: "Only the owner can view permissions" });
-       return
+      res.status(403).json({ error: "Only the owner can view permissions" });
+      return;
     }
 
     // Get list of users with permissions
-    const permissions = await pgPool.query(`
+    const permissions = await pgPool.query(
+      `
       SELECT u.email, u.id, dp.permission_level, dp.created_at
       FROM document_permissions dp
       JOIN users u ON dp.user_id = u.id
       WHERE dp.document_id = $1
       ORDER BY dp.created_at DESC
-    `, [id]);
+    `,
+      [id]
+    );
 
     res.json(permissions.rows);
   } catch (err) {
@@ -143,47 +153,53 @@ router.get("/:id/permissions", authMiddleware, async (req, res) => {
 });
 
 // Remove permission for a user
-router.delete("/:id/permissions/:targetUserId", authMiddleware, async (req, res) => {
-  const { id, targetUserId } = req.params;
-  const userId = req.user!.id;
+router.delete(
+  "/:id/permissions/:targetUserId",
+  authMiddleware,
+  async (req, res) => {
+    const { id, targetUserId } = req.params;
+    const userId = req.user!.id;
 
-  try {
-    // Check if user is the owner
-    const docResult = await pgPool.query(
-      "SELECT owner_id FROM documents WHERE id = $1",
-      [id]
-    );
+    try {
+      // Check if user is the owner
+      const docResult = await pgPool.query(
+        "SELECT owner_id FROM documents WHERE id = $1",
+        [id]
+      );
 
-    if (docResult.rowCount === 0) {
-       res.status(404).json({ error: "Document not found" });
-       return
+      if (docResult.rowCount === 0) {
+        res.status(404).json({ error: "Document not found" });
+        return;
+      }
+
+      if (docResult.rows[0].owner_id !== userId) {
+        res
+          .status(403)
+          .json({ error: "Only the owner can manage permissions" });
+        return;
+      }
+
+      // Delete the permission
+      const result = await pgPool.query(
+        "DELETE FROM document_permissions WHERE document_id = $1 AND user_id = $2 RETURNING *",
+        [id, targetUserId]
+      );
+
+      if (result.rowCount === 0) {
+        res.status(404).json({ error: "Permission not found" });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: "Permission removed successfully",
+      });
+    } catch (err) {
+      console.error("Error removing permission:", err);
+      res.status(500).json({ error: "Failed to remove permission" });
     }
-
-    if (docResult.rows[0].owner_id !== userId) {
-       res.status(403).json({ error: "Only the owner can manage permissions" });
-       return
-    }
-
-    // Delete the permission
-    const result = await pgPool.query(
-      "DELETE FROM document_permissions WHERE document_id = $1 AND user_id = $2 RETURNING *",
-      [id, targetUserId]
-    );
-
-    if (result.rowCount === 0) {
-       res.status(404).json({ error: "Permission not found" });
-       return
-    }
-
-    res.json({ 
-      success: true, 
-      message: "Permission removed successfully" 
-    });
-  } catch (err) {
-    console.error("Error removing permission:", err);
-    res.status(500).json({ error: "Failed to remove permission" });
   }
-});
+);
 
 // Update document content
 router.put("/:id", authMiddleware, async (req, res) => {
@@ -209,10 +225,12 @@ router.put("/:id", authMiddleware, async (req, res) => {
     );
 
     const accessLevel = permResult.rows[0]?.access_level;
-    
-    if (!accessLevel || !['owner', 'edit'].includes(accessLevel)) {
-     res.status(403).json({ error: "You don't have edit permission for this document" });
-     return 
+
+    if (!accessLevel || !["owner", "edit"].includes(accessLevel)) {
+      res
+        .status(403)
+        .json({ error: "You don't have edit permission for this document" });
+      return;
     }
 
     // Fetch current document
@@ -223,7 +241,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
     if (currentDoc.rowCount === 0) {
       res.status(404).json({ error: "Document not found" });
-      return 
+      return;
     }
 
     // Parse current data
@@ -237,19 +255,19 @@ router.put("/:id", authMiddleware, async (req, res) => {
     // Update only provided fields
     const updatedData = {
       title: title !== undefined ? title : currentData.title,
-      content: content !== undefined ? content : currentData.content
+      content: content !== undefined ? content : currentData.content,
     };
 
     // Save updated document
-    await pgPool.query(
-      "UPDATE documents SET data = $1 WHERE id = $2",
-      [JSON.stringify(updatedData), id]
-    );
+    await pgPool.query("UPDATE documents SET data = $1 WHERE id = $2", [
+      JSON.stringify(updatedData),
+      id,
+    ]);
 
     res.json({
       id,
       data: updatedData,
-      message: "Document updated successfully"
+      message: "Document updated successfully",
     });
   } catch (err) {
     console.error("Error updating document:", err);
@@ -377,12 +395,224 @@ router.get("/:id", authMiddleware, async (req, res): Promise<void> => {
       ...result.rows[0],
       data,
       access_level: result.rows[0].access_level,
-      can_edit: ['owner', 'edit'].includes(result.rows[0].access_level),
-      can_delete: result.rows[0].access_level === 'owner'
+      can_edit: ["owner", "edit"].includes(result.rows[0].access_level),
+      can_delete: result.rows[0].access_level === "owner",
     });
   } catch (err) {
     console.error("Error fetching document:", err);
     res.status(500).json({ error: "Failed to fetch document" });
+  }
+});
+
+// Get document settings (READ operation)
+router.get("/:id/preferences", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user!.id;
+
+  try {
+    // Check access to document first
+    const permResult = await pgPool.query(
+      `SELECT 
+        d.data,
+        CASE 
+          WHEN d.owner_id = $1 THEN 'owner'
+          WHEN dp.permission_level IS NOT NULL THEN dp.permission_level
+          WHEN d.visibility = 'public' THEN 'view'
+          ELSE NULL
+        END as access_level
+      FROM documents d
+      LEFT JOIN document_permissions dp ON d.id = dp.document_id AND dp.user_id = $1
+      WHERE d.id = $2 AND (
+        d.owner_id = $1 OR d.visibility = 'public' OR dp.user_id IS NOT NULL
+      )`,
+      [userId, id]
+    );
+
+    if (!permResult.rows[0]?.access_level) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
+    // Get document data
+    let documentSettings = {};
+    if (permResult.rows[0].data) {
+      const data =
+        typeof permResult.rows[0].data === "string"
+          ? JSON.parse(permResult.rows[0].data)
+          : permResult.rows[0].data;
+
+      documentSettings = data.settings || {};
+    }
+
+    // Check for personal preferences
+    const prefResult = await pgPool.query(
+      `SELECT settings FROM document_preferences WHERE document_id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+
+    let personalSettings = {};
+    if (prefResult.rows.length > 0) {
+      personalSettings = prefResult.rows[0].settings;
+    }
+
+    // Default settings
+    const DEFAULT_SETTINGS = {
+      pageHeight: 820,
+      pageWidth: 850,
+      bufferHeight: 30,
+      fontSize: 16,
+      lineHeight: 1.5,
+    };
+
+    // Combine settings: defaults < document settings < personal settings
+    const effectiveSettings = {
+      ...DEFAULT_SETTINGS,
+      ...documentSettings,
+      ...personalSettings,
+    };
+
+    res.json({
+      documentSettings,
+      personalSettings,
+      effectiveSettings,
+      access_level: permResult.rows[0].access_level,
+    });
+  } catch (err) {
+    console.error("Error fetching settings:", err);
+    res.status(500).json({ error: "Failed to fetch settings" });
+  }
+});
+
+// Define the settings schema interface
+interface SettingsSchema {
+  pageHeight: number;
+  pageWidth: number;
+  bufferHeight: number;
+  fontSize: number;
+  lineHeight: number;
+}
+
+// Update document settings (UPDATE operation)
+router.patch("/:id/preferences", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { settings } = req.body;
+  const userId = req.user!.id;
+
+  // Define allowed settings properties and types
+  const allowedProperties: Record<keyof SettingsSchema, string> = {
+    pageHeight: "number",
+    pageWidth: "number",
+    bufferHeight: "number",
+    fontSize: "number",
+    lineHeight: "number",
+  };
+
+  // Default settings
+  const DEFAULT_SETTINGS = {
+    pageHeight: 820,
+    pageWidth: 850,
+    bufferHeight: 30,
+    fontSize: 16,
+    lineHeight: 1.5,
+  };
+
+// Validate settings object
+const validatedSettings = { ...DEFAULT_SETTINGS };
+
+if (settings && typeof settings === 'object') {
+  // Validate each property
+  for (const [key, value] of Object.entries(settings)) {
+    // Check if key is a valid setting name
+    if (!Object.prototype.hasOwnProperty.call(allowedProperties, key)) {
+       res.status(400).json({ error: `Invalid setting: '${key}'` });
+       return
+    }
+    
+    // Safe to use key now as we've checked it exists
+    const expectedType = allowedProperties[key as keyof SettingsSchema];
+    
+    if (typeof value !== expectedType) {
+       res.status(400).json({ 
+        error: `'${key}' must be a ${expectedType}`
+      });
+      return
+    }
+    
+    // Value is valid, add to validated settings
+    validatedSettings[key as keyof SettingsSchema] = value as any;
+  }
+}
+
+  try {
+    // Check permission level
+    const permResult = await pgPool.query(
+      `SELECT 
+        CASE 
+          WHEN d.owner_id = $1 THEN 'owner'
+          WHEN dp.permission_level = 'edit' THEN 'edit'
+          WHEN dp.permission_level = 'view' OR d.visibility = 'public' THEN 'view'
+          ELSE NULL
+        END as access_level
+      FROM documents d
+      LEFT JOIN document_permissions dp ON d.id = dp.document_id AND dp.user_id = $1
+      WHERE d.id = $2`,
+      [userId, id]
+    );
+
+    if (!permResult.rows[0]?.access_level) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
+    const { access_level } = permResult.rows[0];
+
+    // Document-level settings update (requires edit permission)
+    if (
+      req.query.scope === "document" &&
+      ["owner", "edit"].includes(access_level)
+    ) {
+      await pgPool.query(
+        `UPDATE documents 
+         SET data = jsonb_set(
+           CASE 
+             WHEN data IS NULL THEN '{"title":"","content":""}'::jsonb 
+             WHEN data = '' THEN '{"title":"","content":""}'::jsonb
+             ELSE data::jsonb
+           END, 
+           '{settings}', 
+           $1::jsonb
+         )
+         WHERE id = $2`,
+        [JSON.stringify(validatedSettings), id]
+      );
+      res.json({
+        message: "Document settings updated",
+        settings: validatedSettings,
+      });
+      return;
+    }
+    // Personal preference update (any access level is sufficient)
+    else if (req.query.scope === "personal" || !req.query.scope) {
+      await pgPool.query(
+        `INSERT INTO document_preferences (document_id, user_id, settings)
+         VALUES ($1, $2, $3::jsonb)
+         ON CONFLICT (document_id, user_id)
+         DO UPDATE SET settings = $3::jsonb, updated_at = NOW()`,
+        [id, userId, JSON.stringify(validatedSettings)]
+      );
+      res.json({
+        message: "Personal settings updated",
+        settings: validatedSettings,
+      });
+      return;
+    }
+
+    res.status(403).json({ error: "Insufficient permissions" });
+    return;
+  } catch (err) {
+    console.error("Error updating settings:", err);
+    res.status(500).json({ error: "Failed to update settings" });
+    return;
   }
 });
 
