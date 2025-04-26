@@ -4,6 +4,7 @@ import PdfPreviewModal from "./PdfPreviewModal";
 import { useTextPagination } from "@/hooks/useTextPagination";
 import PageSettingsPanel from "./PageSettingsPanel";
 import PdfPreviewButton from "./PdfPreviewButton";
+import EditorToolbar from "./EditorToolbar";
 
 interface PagedEditorProps {
   content: string;
@@ -307,31 +308,16 @@ export default function PagedEditor({
   return (
     <div className="w-full">
       {/* Settings Panel */}
-      <div className="mb-4 mt-4 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
-          >
-            {showSettings ? "Hide Settings" : "Page Settings"}
-          </button>
+      <EditorToolbar 
+        pages={pages}
+        settings={settings}
+        title={title}
+        totalPages={totalPages}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+      />
 
-          <PdfPreviewButton
-            content={pages.join("\f")}
-            settings={settings}
-            title={title}
-          />
-
-          <ExportPdfButton
-            content={pages.join("\f")}
-            title={title}
-            settings={settings}
-          />
-        </div>
-        <div className="text-sm text-gray-500">
-          {totalPages} {totalPages === 1 ? "page" : "pages"}
-        </div>
-      </div>
+      
       {/* Collapsible settings panel */}
       <PageSettingsPanel
         settings={settings}
