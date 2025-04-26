@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import PdfPreview from "./PdfPreview";
 import { PageSettings } from "./PageEditor";
 import ExportPdfButton from "./ExportPdfButton";
+import Button from "./atomic/Button";
 
 interface PdfPreviewModalProps {
   isOpen: boolean;
@@ -39,12 +40,15 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
       >
         <div className="flex justify-between items-center mb-4 sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 border-b dark:border-gray-700">
           <h3 className="text-lg font-medium dark:text-white">{title || 'PDF Preview'}</h3>
-          <button
+          {/* Replace close button with Button atom */}
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+            className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white h-8 w-8 p-0"
+            aria-label="Close"
           >
             <span className="text-2xl">×</span>
-          </button>
+          </Button>
         </div>
         
         <div className="flex flex-col items-center space-y-8 mb-4">
@@ -69,12 +73,14 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
         </div>
         
         <div className="flex justify-end space-x-2 sticky bottom-0 bg-white dark:bg-gray-800 pt-2 border-t dark:border-gray-700">
-          <button
+          {/* Replace close button with Button atom */}
+          <Button
+            variant="secondary"
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+            className="dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
           >
             Close
-          </button>
+          </Button>
           <ExportPdfButton
             content={content}
             settings={settings}

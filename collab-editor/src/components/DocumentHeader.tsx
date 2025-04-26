@@ -2,6 +2,7 @@
 
 import { useEditableTitle } from "@/hooks/useEditableTitle";
 import { useDocumentVisibility } from "@/hooks/useDocumentVisibility";
+import Button from "./atomic/Button";
 
 interface DocumentHeaderProps {
   title: string;
@@ -71,24 +72,20 @@ export default function DocumentHeader({
         {/* Visibility Toggle */}
         <div className="flex items-center">
           <span className="text-sm mr-2">Visibility:</span>
-          <button
-            className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
-              currentVisibility === "public" 
-                ? "bg-green-100 text-green-800" 
-                : "bg-yellow-100 text-yellow-800"
-            } ${accessLevel === "owner" && !visibilityUpdating ? "cursor-pointer hover:bg-opacity-80" : "cursor-not-allowed"}`}
-            onClick={accessLevel === "owner" && !visibilityUpdating ? toggleVisibility : undefined}
-            disabled={visibilityUpdating}
+          <Button
+            variant={currentVisibility === "public" ? "secondary" : "tertiary"}
+            size="sm"
+            onClick={toggleVisibility}
+            disabled={accessLevel !== "owner" || visibilityUpdating}
+            className={currentVisibility === "public" 
+              ? "!bg-green-100 !text-green-800 hover:!bg-green-200" 
+              : "!bg-yellow-100 !text-yellow-800 hover:!bg-yellow-200"
+            }
+            isLoading={visibilityUpdating}
           >
-            {visibilityUpdating ? (
-              <span className="inline-block w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                {currentVisibility === "public" ? "Public" : "Private"}
-                {accessLevel === "owner" && <span className="text-xs ml-1">(Click to toggle)</span>}
-              </>
-            )}
-          </button>
+            {currentVisibility === "public" ? "Public" : "Private"}
+            {accessLevel === "owner" && !visibilityUpdating && <span className="text-xs ml-1">(Click to toggle)</span>}
+          </Button>
         </div>
         
         {/* Connection Status */}

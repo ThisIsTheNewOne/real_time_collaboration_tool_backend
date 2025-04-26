@@ -21,7 +21,6 @@ export interface PageSettings {
   lineHeight: number;
 }
 
-
 export default function PagedEditor({
   content,
   onContentChange,
@@ -57,7 +56,7 @@ export default function PagedEditor({
   return (
     <div className="w-full">
       {/* Settings Panel */}
-      <EditorToolbar 
+      <EditorToolbar
         pages={pages}
         settings={settings}
         title={title}
@@ -66,7 +65,6 @@ export default function PagedEditor({
         setShowSettings={setShowSettings}
       />
 
-      
       {/* Collapsible settings panel */}
       <PageSettingsPanel
         settings={settings}
@@ -87,7 +85,7 @@ export default function PagedEditor({
         handleKeyDown={handleKeyDown}
         setFocusedPageIndex={setFocusedPageIndex}
       />
-      
+
       {/* Hidden div to measure content */}
       <div
         ref={contentMeasureRef}

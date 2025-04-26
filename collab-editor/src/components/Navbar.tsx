@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useAuth } from "@/hooks/useAuth";
 import { usePathname } from "next/navigation";
+import Button from "@/components/atomic/Button";
 import MobileMenu from "./MobileMenu";
 import { useAuthContext } from "@/context/AuthContext";
 
@@ -17,14 +17,13 @@ export default function Navbar() {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
 
-    // Add console logs to see the current state
-    console.log("Navbar render - Auth state:", { 
-      isAuthenticated, 
-      loading, 
-      userExists: !!user,
-      userEmail: user?.email 
-    });
-
+  // Add console logs to see the current state
+  console.log("Navbar render - Auth state:", { 
+    isAuthenticated, 
+    loading, 
+    userExists: !!user,
+    userEmail: user?.email 
+  });
 
   // Handle clicks outside the dropdown to close it
   useEffect(() => {
@@ -39,7 +38,6 @@ export default function Navbar() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [dropdownRef]);
-
 
   return (
     <nav className="sticky top-0 z-999 bg-white border-b border-gray-200 shadow-sm">
@@ -74,14 +72,14 @@ export default function Navbar() {
               <div className="animate-pulse h-8 w-24 bg-gray-200 rounded-md"></div>
             ) : isAuthenticated ? (
               <div className="relative" ref={dropdownRef}>
-                <button
+                <div 
                   onClick={toggleDropdown}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
+                  className="flex items-center space-x-2 cursor-pointer px-3 py-2 rounded-md hover:bg-gray-100"
                 >
                   <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
                     {user?.email.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm font-medium">{user?.email}</span>
+                  <span className="text-sm font-medium text-gray-700">{user?.email}</span>
                   <svg 
                     className={`h-5 w-5 text-gray-400 ${isDropdownOpen ? 'transform rotate-180' : ''}`} 
                     fill="none" 
@@ -90,7 +88,7 @@ export default function Navbar() {
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
-                </button>
+                </div>
                 
                 {/* User Dropdown Menu */}
                 {isDropdownOpen && (
@@ -106,34 +104,35 @@ export default function Navbar() {
                       >
                         Your Profile
                       </Link>
-                      <button
+                      <Button
+                        variant="ghost"
                         onClick={() => {
                           setIsDropdownOpen(false);
                           logout();
                         }}
                         className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        role="menuitem"
                       >
                         Sign out
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <Link
-                href="/login"
-                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Log in
+              <Link href="/login">
+                <Button
+                  variant="primary"
+                >
+                  Log in
+                </Button>
               </Link>
             )}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="flex items-center sm:hidden">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
               onClick={toggleMenu}
             >
@@ -164,7 +163,7 @@ export default function Navbar() {
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
+            </Button>
           </div>
         </div>
       </div>

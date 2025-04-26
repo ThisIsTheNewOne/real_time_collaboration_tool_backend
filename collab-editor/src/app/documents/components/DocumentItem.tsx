@@ -1,8 +1,8 @@
 import Link from "next/link";
-import {  User } from "@/hooks/useDocuments";
+import { User } from "@/hooks/useDocuments";
 import { useState } from "react";
 import { Document } from "@/types";
-
+import Button from "@/components/atomic/Button";
 
 interface DocumentItemProps {
   document: Document;
@@ -56,13 +56,15 @@ export default function DocumentItem({ document, currentUser, creatorName, onDel
       </Link>
       
       {(isOwner || isPrivate) && (
-        <button
+        <Button
+          variant="danger"
+          size="sm"
           onClick={handleDelete}
           disabled={isDeleting}
-          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+          isLoading={isDeleting}
         >
-          {isDeleting ? "Deleting..." : "Delete"}
-        </button>
+          Delete
+        </Button>
       )}
     </div>
   );

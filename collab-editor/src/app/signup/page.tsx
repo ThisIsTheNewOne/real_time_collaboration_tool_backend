@@ -6,7 +6,7 @@ import Link from "next/link";
 import { register } from "@/lib/api";
 import AuthLayout from "@/components/AuthLayout";
 import FormInput from "@/components/FormInput";
-import LoadingButton from "@/components/LoadingButton";
+import Button from "@/components/atomic/Button";
 import Alert from "@/components/Alert";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -133,13 +133,15 @@ export default function SignupPage() {
           disabled={loading}
         />
 
-        <LoadingButton
+        <Button
           type="submit"
-          loading={loading}
-          loadingText="Creating Account..."
+          variant="primary"
+          isLoading={loading}
+          disabled={loading}
+          fullWidth
         >
-          Create Account
-        </LoadingButton>
+          {loading ? "Creating Account..." : "Create Account"}
+        </Button>
       </form>
 
       <div className="mt-6 text-center">

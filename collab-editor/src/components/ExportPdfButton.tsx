@@ -1,6 +1,7 @@
 import usePdfExport from '@/hooks/usePdfExport';
 import React from 'react';
 import { PageSettings } from '@/components/PageEditor';
+import Button from './atomic/Button';
 
 interface ExportPdfButtonProps {
   content: string;
@@ -12,12 +13,13 @@ const ExportPdfButton: React.FC<ExportPdfButtonProps> = ({ content, settings, ti
   const { exportPdf } = usePdfExport(content, settings, title);
 
   return (
-    <button
+    <Button
+      variant="primary"
+      size="sm"
       onClick={exportPdf}
-       className="px-3 py-1 bg-blue-500  text-white rounded hover:bg-gray-300 text-sm hover:bg-blue-600"
     >
       Export as PDF
-    </button>
+    </Button>
   );
 };
 

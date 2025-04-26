@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PdfPreviewModal from "./PdfPreviewModal";
 import { PageSettings } from './PageEditor';
+import Button from "./atomic/Button";
 
 interface PdfPreviewButtonProps {
   content: string;
@@ -17,12 +18,14 @@ export default function PdfPreviewButton({
 
   return (
     <>
-      <button
+     <Button
+        variant="tertiary"
+        size="sm"
+        // leftIcon={<DocumentIcon className="h-4 w-4" />}
         onClick={() => setShowPreview(true)}
-        className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
       >
         Preview PDF
-      </button>
+      </Button>
 
       <PdfPreviewModal
         isOpen={showPreview}

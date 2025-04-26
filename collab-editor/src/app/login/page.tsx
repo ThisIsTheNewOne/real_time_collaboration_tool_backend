@@ -6,11 +6,9 @@ import Link from "next/link";
 import { login } from "@/lib/api";
 import AuthLayout from "@/components/AuthLayout";
 import FormInput from "@/components/FormInput";
-import LoadingButton from "@/components/LoadingButton";
+import Button from "@/components/atomic/Button";
 import Alert from "@/components/Alert";
 import { useAuthContext } from "@/context/AuthContext";
-
-
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,7 +19,6 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, loading, login: newLogIn } = useAuthContext();
-  
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -47,10 +44,10 @@ export default function LoginPage() {
     try {
       // First, call the API to get the token
       const result = await login(email, password);
-      
+
       // Then use our hook's login function to set the auth state
       const success = await newLogIn(result.token);
-      
+
       if (success) {
         router.push("/documents");
       } else {
@@ -60,7 +57,9 @@ export default function LoginPage() {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Failed to login. Please check your credentials and try again.");
+        setError(
+          "Failed to login. Please check your credentials and try again."
+        );
       }
       console.error("Login error:", err);
     } finally {
@@ -69,13 +68,13 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthLayout 
-      title="Sign in to your account" 
+    <AuthLayout
+      title="Sign in to your account"
       subtitle="Access your documents and collaborations"
     >
       {error && <Alert type="error">{error}</Alert>}
       {successMessage && <Alert type="success">{successMessage}</Alert>}
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <FormInput
           label="Email Address"
@@ -101,19 +100,24 @@ export default function LoginPage() {
           autoComplete="current-password"
         />
 
-        <LoadingButton 
-          type="submit" 
-          loading={isLoading} 
-          loadingText="Signing in..."
+        <Button
+          type="submit"
+          variant="primary"
+          isLoading={isLoading}
+          disabled={isLoading}
+          fullWidth
         >
-          Sign in
-        </LoadingButton>
+          {isLoading ? "Signing in..." : "Sign in"}
+        </Button>
       </form>
 
       <div className="mt-6 text-center">
         <p className="text-gray-600">
           Don't have an account?{" "}
-          <Link href="/signup" className="text-blue-600 hover:text-blue-800 font-medium">
+          <Link
+            href="/signup"
+            className="!p-0 !m-0 text-blue-600 hover:text-blue-800 font-medium"
+          >
             Sign up
           </Link>
         </p>

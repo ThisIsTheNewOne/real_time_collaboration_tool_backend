@@ -1,4 +1,5 @@
 import { PageSettings } from './PageEditor';
+import Button from './atomic/Button';
 
 interface PageSettingsPanelProps {
   settings: PageSettings;
@@ -118,15 +119,18 @@ export default function PageSettingsPanel({
           />
         </div>
 
-        {/* Preset Buttons */}
+        {/* Preset Buttons - replaced with Button component */}
         <div className="col-span-2 flex gap-2 mt-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => onSettingsChange(defaultSettings)}
-            className="px-3 py-1 bg-gray-300 rounded text-sm"
           >
             Default
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() =>
               onSettingsChange({
                 ...defaultSettings,
@@ -134,11 +138,12 @@ export default function PageSettingsPanel({
                 pageHeight: 842,
               })
             }
-            className="px-3 py-1 bg-gray-300 rounded text-sm"
           >
             A4
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() =>
               onSettingsChange({
                 ...defaultSettings,
@@ -146,10 +151,9 @@ export default function PageSettingsPanel({
                 pageHeight: 792,
               })
             }
-            className="px-3 py-1 bg-gray-300 rounded text-sm"
           >
             Letter
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import Button from '@/components/atomic/Button';
 
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();
@@ -39,17 +40,21 @@ export default function Home() {
           Create, edit, and share documents in real-time with your team.
         </p>
         <div className="flex space-x-4 justify-center">
-          <Link 
-            href="/login" 
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Login
+          <Link href="/login">
+            <Button 
+              variant="primary"
+              size="lg"
+            >
+              Login
+            </Button>
           </Link>
-          <Link 
-            href="/signup" 
-            className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
-          >
-            Sign Up
+          <Link href="/signup">
+            <Button 
+              variant="secondary"
+              size="lg"
+            >
+              Sign Up
+            </Button>
           </Link>
         </div>
       </div>

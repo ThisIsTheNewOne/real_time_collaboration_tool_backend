@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { User } from "@/hooks/useDocuments";
 import DocumentItem from "./DocumentItem";
 import { Document } from "@/types";
+import Button from "@/components/atomic/Button";
 
 interface DocumentListProps {
   title: string;
@@ -83,14 +84,17 @@ export default function DocumentList({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button 
+            <Button 
               onClick={clearSearch}
-              className="absolute inset-y-0 right-0 flex items-center pr-3"
+              variant="ghost"
+              size="sm"
+              className="absolute inset-y-0 right-0 flex items-center pr-3 h-full !p-0 !bg-transparent"
+              aria-label="Clear search"
             >
               <svg className="w-4 h-4 text-gray-500 hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </Button>
           )}
         </div>
         {!isRegexValid && (
@@ -125,12 +129,14 @@ export default function DocumentList({
       
       {searchQuery && filteredDocuments.length > 0 && documents.length > filteredDocuments.length && (
         <div className="flex justify-center">
-          <button 
+          <Button 
             onClick={clearSearch}
-            className="text-sm text-blue-600 hover:text-blue-800"
+            variant="ghost"
+            size="sm"
+            className="text-blue-600 hover:text-blue-800"
           >
             Clear search and show all {documents.length} documents
-          </button>
+          </Button>
         </div>
       )}
     </div>

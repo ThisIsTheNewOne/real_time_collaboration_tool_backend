@@ -1,6 +1,7 @@
 import React from 'react';
 import PdfPreviewButton from './PdfPreviewButton';
 import ExportPdfButton from './ExportPdfButton';
+import Button from './atomic/Button';
 import { PageSettings } from './PageEditor';
 
 interface EditorToolbarProps {
@@ -26,12 +27,13 @@ export default function EditorToolbar({
   return (
     <div className="mb-4 mt-4 flex justify-between items-center">
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => setShowSettings(!showSettings)}
-          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
         >
           {showSettings ? "Hide Settings" : "Page Settings"}
-        </button>
+        </Button>
 
         <PdfPreviewButton
           content={pdfContent}
