@@ -2,6 +2,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import ExportPdfButton from "./ExportPdfButton";
 import PdfPreviewModal from "./PdfPreviewModal";
 import { useTextPagination } from "@/hooks/useTextPagination";
+import PageSettingsPanel from "./PageSettingsPanel";
+import PdfPreviewButton from "./PdfPreviewButton";
 
 interface PagedEditorProps {
   content: string;
@@ -49,7 +51,6 @@ export default function PagedEditor({
     initialSettings || DEFAULT_SETTINGS
   );
   const [showSettings, setShowSettings] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
 
   const [pages, setPages] = useState<string[]>([""]);
   const [totalPages, setTotalPages] = useState(1);
@@ -65,23 +66,13 @@ export default function PagedEditor({
   const contentMeasureRef = useRef<HTMLDivElement>(null);
   const internalContent = useRef(content);
 
-    // Use the extracted pagination hook
-    const { splitIntoPages, isApproachingOverflow } = useTextPagination({
-      contentMeasureRef,
-      settings
-    });
-  
+  // Use the extracted pagination hook
+  const { splitIntoPages, isApproachingOverflow } = useTextPagination({
+    contentMeasureRef,
+    settings,
+  });
 
-  // Function to update a single setting
-  const updateSetting = (key: keyof PageSettings, value: number) => {
-    setSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-
-
+ 
   // Re-paginate when settings change
   useEffect(() => {
     if (isInitialized && contentMeasureRef.current) {
@@ -311,8 +302,6 @@ export default function PagedEditor({
     console.log("this is important", settings);
   }, [settings]);
 
-
-
   if (!isInitialized) return <div>Loading...</div>;
 
   return (
@@ -327,12 +316,11 @@ export default function PagedEditor({
             {showSettings ? "Hide Settings" : "Page Settings"}
           </button>
 
-          <button
-            onClick={() => setShowPreview(true)}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
-          >
-            Preview PDF
-          </button>
+          <PdfPreviewButton
+            content={pages.join("\f")}
+            settings={settings}
+            title={title}
+          />
 
           <ExportPdfButton
             content={pages.join("\f")}
@@ -345,143 +333,11 @@ export default function PagedEditor({
         </div>
       </div>
       {/* Collapsible settings panel */}
-      {showSettings && (
-        <div className="mb-6 p-4 bg-gray-100 rounded-md">
-          <h3 className="text-md font-semibold mb-3">Page Settings</h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Page Width */}
-            <div>
-              <label className="block text-sm mb-1">
-                Page Width: {settings.pageWidth}px
-              </label>
-              <input
-                type="range"
-                min="500"
-                max="1200"
-                step="10"
-                value={settings.pageWidth}
-                onChange={(e) =>
-                  updateSetting("pageWidth", parseInt(e.target.value))
-                }
-                className="w-full"
-              />
-            </div>
-
-            {/* Page Height */}
-            <div>
-              <label className="block text-sm mb-1">
-                Page Height: {settings.pageHeight}px
-              </label>
-              <input
-                type="range"
-                min="600"
-                max="1200"
-                step="10"
-                value={settings.pageHeight}
-                onChange={(e) =>
-                  updateSetting("pageHeight", parseInt(e.target.value))
-                }
-                className="w-full"
-              />
-            </div>
-
-            {/* Font Size */}
-            <div>
-              <label className="block text-sm mb-1">
-                Font Size: {settings.fontSize}px
-              </label>
-              <input
-                type="range"
-                min="12"
-                max="24"
-                step="1"
-                value={settings.fontSize}
-                onChange={(e) =>
-                  updateSetting("fontSize", parseInt(e.target.value))
-                }
-                className="w-full"
-              />
-            </div>
-
-            {/* Line Height */}
-            <div>
-              <label className="block text-sm mb-1">
-                Line Height: {settings.lineHeight}
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="2.5"
-                step="0.1"
-                value={settings.lineHeight}
-                onChange={(e) =>
-                  updateSetting("lineHeight", parseFloat(e.target.value))
-                }
-                className="w-full"
-              />
-            </div>
-
-            {/* Buffer Height */}
-            <div>
-              <label className="block text-sm mb-1">
-                Split Buffer: {settings.bufferHeight}px
-              </label>
-              <input
-                type="range"
-                min="10"
-                max="100"
-                step="5"
-                value={settings.bufferHeight}
-                onChange={(e) =>
-                  updateSetting("bufferHeight", parseInt(e.target.value))
-                }
-                className="w-full"
-              />
-            </div>
-
-            {/* Preset Buttons */}
-            <div className="col-span-2 flex gap-2 mt-2">
-              <button
-                onClick={() => setSettings(DEFAULT_SETTINGS)}
-                className="px-3 py-1 bg-gray-300 rounded text-sm"
-              >
-                Default
-              </button>
-              <button
-                onClick={() =>
-                  setSettings({
-                    ...DEFAULT_SETTINGS,
-                    pageWidth: 595,
-                    pageHeight: 842,
-                  })
-                }
-                className="px-3 py-1 bg-gray-300 rounded text-sm"
-              >
-                A4
-              </button>
-              <button
-                onClick={() =>
-                  setSettings({
-                    ...DEFAULT_SETTINGS,
-                    pageWidth: 612,
-                    pageHeight: 792,
-                  })
-                }
-                className="px-3 py-1 bg-gray-300 rounded text-sm"
-              >
-                Letter
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <PdfPreviewModal
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-        content={pages.join("\f")}
+      <PageSettingsPanel
         settings={settings}
-        title={title}
+        onSettingsChange={setSettings}
+        defaultSettings={DEFAULT_SETTINGS}
+        isVisible={showSettings}
       />
       {/* Multi-page editor with gap between pages */}
       <div className="mb-8 flex flex-col items-center">

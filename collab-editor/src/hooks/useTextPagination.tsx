@@ -77,7 +77,7 @@ export const useTextPagination = ({ contentMeasureRef, settings }: TextPaginatio
                 splitPoint = nearestSpace + 1;
               } else {
                 // Special handling for very long words with no breaks
-                console.log("Splitting a long word with no natural breaks");
+                console.log("                redis-cli");
                 
                 // Check if we're genuinely in a long continuous string
                 const nextSpace = remainingText.indexOf(" ", splitPoint);
