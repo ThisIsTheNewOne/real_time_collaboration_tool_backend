@@ -9,6 +9,7 @@ import { connectDB, pgPool } from "./config/db"
 import documentsRouter from './routes/documents';
 import authRouter from './routes/auth';
 import userRouter from './routes/user';
+import supportRouter from './routes/support';
 
 //Initialize Environment Variables
 dotenv.config();
@@ -32,6 +33,7 @@ connectDB();
 app.use('/api/documents', documentsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
+app.use('/api/support', supportRouter);
 
 //configure Socket.io
 const io = new Server( server, {
